@@ -8,8 +8,8 @@ public class SyncService {
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/www/sync/";
-    private static String databaseDirectory = "/www/database/";
+    private static String syncDirectory = "/home/bishakh/psync/sync/";
+    private static String databaseDirectory = "/home/bishakh/psync/database/";
     private static String databaseName = "fileDB.txt";
 
     public WebServer webServer;

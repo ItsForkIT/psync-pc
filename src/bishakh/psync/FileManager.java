@@ -1,15 +1,10 @@
 package bishakh.psync;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.StreamCorruptedException;
+import java.io.*;
+import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -27,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileManager {
 
     ConcurrentHashMap<String, FileTable> fileTableHashMap = new ConcurrentHashMap<String, FileTable>();
+    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileTable>>(){}.getType();
     Gson gson = new Gson();
     final String DATABASE_NAME;
     final String DATABASE_PATH;
@@ -151,11 +147,19 @@ public class FileManager {
      */
     private void writeDB() {
         try{
+            File file = new File(DATABASE_PATH);
+            FileWriter fileWriter = new FileWriter(file);
+            fileWriter.write(gson.toJson(fileTableHashMap));
+            fileWriter.flush();
+            fileWriter.close();
+
+            /*
             FileOutputStream fileOutputStream = new FileOutputStream(DATABASE_PATH);
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
             objectOutputStream.writeObject(fileTableHashMap);
             objectOutputStream.close();
             fileOutputStream.close();
+            */
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -170,20 +174,26 @@ public class FileManager {
     private void readDB() {
         Log.d("DEBUG", "FileManager reading from fileDB");
         try{
+            BufferedReader br = new BufferedReader(new FileReader(DATABASE_PATH));
+
+            //convert the json string back to object
+            fileTableHashMap = (ConcurrentHashMap<String, FileTable>)gson.fromJson(br, ConcurrentHashMapType);
+            /*
             FileInputStream fileInputStream = new FileInputStream(DATABASE_PATH);
             ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
             fileTableHashMap = (ConcurrentHashMap<String, FileTable>) objectInputStream.readObject();
             objectInputStream.close();
             fileInputStream.close();
+            */
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } catch (StreamCorruptedException e) {
+        } /*catch (StreamCorruptedException e) {
             e.printStackTrace();
-        } catch (IOException e) {
+        }*/ catch (IOException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } /*catch (ClassNotFoundException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 
     /**
