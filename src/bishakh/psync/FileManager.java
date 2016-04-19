@@ -33,6 +33,7 @@ public class FileManager {
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
         this.FILES_PATH = new File(syncDirectory);
+        Log.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
     }
 

@@ -24,7 +24,7 @@ public class Discoverer {
     final ListenThread listenThread;
     final PeerExpiryThread peerExpiryThread;
 
-    volatile ConcurrentHashMap<String, Integer> peerList;
+    public volatile ConcurrentHashMap<String, Integer> peerList;
 
     public Discoverer(String BROADCAST_IP, int PORT) {
         this.BROADCAST_IP = BROADCAST_IP;

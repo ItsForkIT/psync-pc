@@ -36,13 +36,13 @@ public class FileTransporter {
     }
 
 
-    class ResumeDownloadThread implements Runnable {
+    public class ResumeDownloadThread implements Runnable {
         URL url;
         File outputFile;
         long startByte, endByte;
         final int BUFFER_SIZE = 10240;
 
-        String fileID;
+        public String fileID;
         boolean mIsFinished = false;
         boolean DOWNLOADING = true;
         boolean mState = true;
