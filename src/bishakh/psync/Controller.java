@@ -5,6 +5,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -29,6 +31,8 @@ public class Controller {
     | Peer Address | File ID | File Table for the file |
     ----------------------------------------------------
      */
+
+    ConcurrentHashMap<String, FileTable> priorityDownloadList;
 
     public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads) {
         this.discoverer = discoverer;
@@ -119,11 +123,11 @@ public class Controller {
                             break;
                         }else {
                             if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) <
-                                remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1)) {
-                            isMissing = true;
-                            Log.d("DEBUG: ", "MISSING FILE INCOMPLETE");
-                            endByte = fileManager.fileTableHashMap.get(myFiles).getSequence().get(1);
-                            break;
+                                    remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1)) {
+                                isMissing = true;
+                                Log.d("DEBUG: ", "MISSING FILE INCOMPLETE");
+                                endByte = fileManager.fileTableHashMap.get(myFiles).getSequence().get(1);
+                                break;
                             } else {
                                 isMissing = false;
                                 break;
@@ -158,11 +162,11 @@ public class Controller {
      * Remove the peer which has expired
      */
     void removeExpiredRemoteFiles() {
-            for(String peer : remotePeerFileTableHashMap.keySet()) {
-                    if(discoverer.peerList.get(peer) == null) { // the peer has expired
-                            remotePeerFileTableHashMap.remove(peer);
-                    }
+        for(String peer : remotePeerFileTableHashMap.keySet()) {
+            if(discoverer.peerList.get(peer) == null) { // the peer has expired
+                remotePeerFileTableHashMap.remove(peer);
             }
+        }
     }
 
 
@@ -185,8 +189,49 @@ public class Controller {
     }
 
     void startDownloadingMissingFiles(){
-        if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads){
-            for(String p : missingFileTableHashMap.keySet()){
+        if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
+            priorityDownloadList.clear();
+            // arrange files to be downloaded according to priority
+            for(String p : missingFileTableHashMap.keySet()) {
+                for(String fileID : missingFileTableHashMap.get(p).keySet()) {
+                    int priority = missingFileTableHashMap.get(p).get(fileID).getPriority();
+                    String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
+                    priorityDownloadList.put(priorityPeerID, missingFileTableHashMap.get(p).get(fileID));
+                }
+            }
+
+            // sort this list according to priority
+            Map<String, FileTable> priorityDownloadListSorted = new TreeMap<>(priorityDownloadList);
+
+            // start download
+            for(String priorityPeerID : priorityDownloadListSorted.keySet()) {
+                if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
+                    break;
+                }
+                boolean ongoing = false;
+                for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
+                    if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(priorityDownloadListSorted.get(priorityPeerID).getFileID())){
+                        ongoing = true;
+                        break;
+                    }
+                }
+                if(!ongoing){
+                    try {
+                        Log.d("DEBUG: ", "Controller MISSING FILE START DOWNLOAD" );
+                        String peerID = priorityPeerID.substring(priorityPeerID.indexOf("###") + 3); // extract peer id
+
+                        fileTransporter.downloadFile(priorityDownloadListSorted.get(priorityPeerID).getFileID(),
+                                priorityDownloadListSorted.get(priorityPeerID).getFileName(),
+                                peerID,
+                                priorityDownloadListSorted.get(priorityPeerID).getSequence().get(1),
+                                -1);
+                    } catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            /*
+            for(String p : missingFileTableHashMap.keySet()) {
                 if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
                     break;
                 }
@@ -213,7 +258,7 @@ public class Controller {
                         }
                     }
                 }
-            }
+            }*/
         }
     }
 
