@@ -33,6 +33,19 @@ public class Controller {
      */
 
     ConcurrentHashMap<String, FileTable> priorityDownloadList;
+    /*
+    priorityDownloadList Format :
+    ---------------------------------------
+    | Priority | File Table for the file |
+    ---------------------------------------
+     */
+    ConcurrentHashMap<FileTable, String> fileTablePeerID;
+    /*
+    fileTablePeerID Format :
+    ---------------------------------------
+    | File Table for the file | Peer Id
+    ---------------------------------------
+     */
 
     public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads) {
         this.discoverer = discoverer;
@@ -191,12 +204,14 @@ public class Controller {
     void startDownloadingMissingFiles(){
         if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
             priorityDownloadList.clear();
+            fileTablePeerID.clear();
             // arrange files to be downloaded according to priority
             for(String p : missingFileTableHashMap.keySet()) {
                 for(String fileID : missingFileTableHashMap.get(p).keySet()) {
                     int priority = missingFileTableHashMap.get(p).get(fileID).getPriority();
-                    String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
-                    priorityDownloadList.put(priorityPeerID, missingFileTableHashMap.get(p).get(fileID));
+                    //String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
+                    priorityDownloadList.put(""+priority, missingFileTableHashMap.get(p).get(fileID));
+                    fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
                 }
             }
 
@@ -204,13 +219,13 @@ public class Controller {
             Map<String, FileTable> priorityDownloadListSorted = new TreeMap<>(priorityDownloadList);
 
             // start download
-            for(String priorityPeerID : priorityDownloadListSorted.keySet()) {
+            for(String priority : priorityDownloadListSorted.keySet()) {
                 if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
                     break;
                 }
                 boolean ongoing = false;
-                for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
-                    if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(priorityDownloadListSorted.get(priorityPeerID).getFileID())){
+                for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()) {
+                    if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(priorityDownloadListSorted.get(priority).getFileID())){
                         ongoing = true;
                         break;
                     }
@@ -218,12 +233,13 @@ public class Controller {
                 if(!ongoing){
                     try {
                         Log.d("DEBUG: ", "Controller MISSING FILE START DOWNLOAD" );
-                        String peerID = priorityPeerID.substring(priorityPeerID.indexOf("###") + 3); // extract peer id
+                        //String peerID = priorityPeerID.substring(priorityPeerID.indexOf("###") + 3); // extract peer id
 
-                        fileTransporter.downloadFile(priorityDownloadListSorted.get(priorityPeerID).getFileID(),
-                                priorityDownloadListSorted.get(priorityPeerID).getFileName(),
-                                peerID,
-                                priorityDownloadListSorted.get(priorityPeerID).getSequence().get(1),
+                        // we have files sorted according to priority ... use fileTablePeerID to get the peer id of the files
+                        fileTransporter.downloadFile(priorityDownloadListSorted.get(priority).getFileID(),
+                                priorityDownloadListSorted.get(priority).getFileName(),
+                                fileTablePeerID.get(priorityDownloadListSorted.get(priority)),
+                                priorityDownloadListSorted.get(priority).getSequence().get(1),
                                 -1);
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
