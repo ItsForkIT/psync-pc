@@ -190,9 +190,9 @@ public class FileManager {
             e.printStackTrace();
         } /*catch (StreamCorruptedException e) {
             e.printStackTrace();
-        }*/ catch (IOException e) {
+        }*/ /*catch (IOException e) {
             e.printStackTrace();
-        } /*catch (ClassNotFoundException e) {
+        }*/ /*catch (ClassNotFoundException e) {
             e.printStackTrace();
         }*/
     }

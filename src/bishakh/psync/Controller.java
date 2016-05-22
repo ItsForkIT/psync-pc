@@ -24,28 +24,31 @@ public class Controller {
     int maxRunningDownloads;
 
     ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> remotePeerFileTableHashMap;
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> missingFileTableHashMap;
+
     /*
     missingFileTableHashMap Format :
     ----------------------------------------------------
     | Peer Address | File ID | File Table for the file |
     ----------------------------------------------------
      */
+    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> missingFileTableHashMap;
 
-    ConcurrentHashMap<String, FileTable> priorityDownloadList;
     /*
     priorityDownloadList Format :
     ---------------------------------------
     | Priority | File Table for the file |
     ---------------------------------------
      */
-    ConcurrentHashMap<FileTable, String> fileTablePeerID;
+    ConcurrentHashMap<String, FileTable> priorityDownloadList;
+
     /*
     fileTablePeerID Format :
     ---------------------------------------
     | File Table for the file | Peer Id
     ---------------------------------------
      */
+    ConcurrentHashMap<FileTable, String> fileTablePeerID;
+
 
     public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads) {
         this.discoverer = discoverer;
@@ -55,6 +58,8 @@ public class Controller {
         this.maxRunningDownloads = maxRunningDownloads;
         remotePeerFileTableHashMap = new ConcurrentHashMap<>();
         missingFileTableHashMap = new ConcurrentHashMap<>();
+        priorityDownloadList = new ConcurrentHashMap<>();
+        fileTablePeerID = new ConcurrentHashMap<>();
         controllerThread = new ControllerThread(this);
         mcontrollerThread  = new Thread(controllerThread);
     }
