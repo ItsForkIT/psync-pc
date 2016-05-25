@@ -187,13 +187,23 @@ public class Discoverer {
             try{
                 datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("0.0.0.0"));
                 datagramSocket.setBroadcast(true);
+                datagramSocket.setSoTimeout(200);
 
                 Log.d("DEBUG", "ListenerThread Start");
                 this.isRunning = true;
                 while(!this.exit) {
                     buffer = new byte[15000];
+                    boolean willUpdatePeer = false;
                     datagramPacket = new DatagramPacket(buffer, buffer.length);
-                    datagramSocket.receive(datagramPacket);
+                    try {
+                        datagramSocket.receive(datagramPacket);
+                        willUpdatePeer = true;          // datagram packet received will update peer list
+                    }catch (IOException e) {
+                        /*
+                        This exception will be caught when we do not receive a datagram packet
+                         */
+                    }
+
                     byte[] data = datagramPacket.getData();
                     InputStreamReader inputStreamReader = new InputStreamReader(new ByteArrayInputStream(data), Charset.forName("UTF-8"));
 
@@ -205,7 +215,9 @@ public class Discoverer {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    updatePeers(datagramPacket.getAddress().getHostAddress());
+                    if(willUpdatePeer) {
+                        updatePeers(datagramPacket.getAddress().getHostAddress());
+                    }
                 } // end of while
             }catch (UnknownHostException e){
 
@@ -214,7 +226,11 @@ public class Discoverer {
 
 
             } finally {
+                try {
                     datagramSocket.close();
+                }catch (NullPointerException e){
+
+                }
             }
             this.exit = false;
             this.isRunning = false;
