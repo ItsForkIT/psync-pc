@@ -8,9 +8,10 @@ public class SyncService {
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/pi/offlinemcs/static/sync/";
-    private static String databaseDirectory = "/home/pi/offlinemcs/";
+    private static String syncDirectory = "/home/dms/sync/";
+    private static String databaseDirectory = "/home/dms/";
     private static String databaseName = "fileDB.txt";
+    private static final String PEER_ID = "DB";
 
     public WebServer webServer;
     public Discoverer discoverer;
@@ -19,7 +20,7 @@ public class SyncService {
     public Controller controller;
 
     public SyncService() {
-        discoverer = new Discoverer(BROADCAST_IP, PORT);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT);
         fileManager = new FileManager(databaseName, databaseDirectory, syncDirectory);
         fileTransporter = new FileTransporter(syncDirectory);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads);

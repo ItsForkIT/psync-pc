@@ -214,9 +214,16 @@ public class FileManager {
                 seq.add(0, 0);
                 seq.add(1, fileSize);
                 String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-                String ttl = "NONE";
+                String ttl;
+                try {
+                    ttl = file.getName().split("_")[1];
+                }
+                catch(Exception e){
+                    ttl = "50";
+                }
+                Log.d("DEBUG", ttl);
                 String destination = "DB";
-                enterFile(fileID, file.getName(), seq, fileSize, 1, timeStamp, ttl, destination, false);
+                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false);
             }
 
         }

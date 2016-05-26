@@ -9,6 +9,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -19,18 +22,21 @@ public class Discoverer {
 
     String BROADCAST_IP;
     int PORT;
+    String PEER_ID;
     final Thread[] thread = new Thread[3];
     final BroadcastThread broadcastThread;
     final ListenThread listenThread;
     final PeerExpiryThread peerExpiryThread;
 
-    public volatile ConcurrentHashMap<String, Integer> peerList;
+    public volatile ConcurrentHashMap<String, ArrayList<String>> peerList;
 
-    public Discoverer(String BROADCAST_IP, int PORT) {
+    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT) {
         this.BROADCAST_IP = BROADCAST_IP;
         this.PORT = PORT;
+        this.PEER_ID = PEER_ID;
 
-        peerList = new ConcurrentHashMap<String, Integer>();
+        peerList = new ConcurrentHashMap<String, ArrayList<String>>();
+        // peerList format PEER_IP : [PEER_ID, timeAfterLastBroadcast]
         broadcastThread = new BroadcastThread(BROADCAST_IP, PORT);
         listenThread = new ListenThread();
         peerExpiryThread = new PeerExpiryThread();
@@ -129,7 +135,7 @@ public class Discoverer {
             try {
                 datagramSocket = new DatagramSocket();
                 datagramSocket.setBroadcast(true);
-                buffer = "Msg from server".getBytes("UTF-8");
+                buffer = PEER_ID.getBytes("UTF-8");
                 this.isRunning = true;
                 while(!this.exit) {
                     datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
@@ -216,7 +222,8 @@ public class Discoverer {
                         e.printStackTrace();
                     }
                     if(willUpdatePeer) {
-                        updatePeers(datagramPacket.getAddress().getHostAddress());
+                        String peerID = new String(data, 0, datagramPacket.getLength());
+                        updatePeers(datagramPacket.getAddress().getHostAddress(), peerID);
                     }
                 } // end of while
             }catch (UnknownHostException e){
@@ -251,15 +258,19 @@ public class Discoverer {
 
         /**
          * Update list of peers
-         * @param s the ip address of the current peer
+         * @param peerIP the ip address of the discovered peer
+         * @param peerID id of the current peer
          */
-        public void updatePeers(String s) {
+        public void updatePeers(String peerIP, String peerID ) {
             /*
             Put the ip address in the table
             Set its counter to 0
              */
-            Log.d("DEBUG", "ListenerThread Receive Broadcaset:" + s);
-            peerList.put(s, 0);
+            ArrayList<String> l = new ArrayList<String>();
+            l.add(peerID);
+            l.add(0 + "");
+            Log.d("DEBUG", "ListenerThread Receive Broadcaset:" + peerID);
+            peerList.put(peerIP, l);
         }
     }
 
@@ -276,11 +287,14 @@ public class Discoverer {
             isRunning = true;
             while (!exit) {
                 for (String s : peerList.keySet()) {
-                    if(peerList.get(s) >= 10) {
+                    ArrayList<String> l = peerList.get(s);
+                    int time = Integer.parseInt(l.get(1));
+                    if(time >= 10) {
                         peerList.remove(s);
-                        Log.d("DEBUG", "PeerExpiryThread Remove:" + s);
+                        Log.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));
                     } else {
-                        peerList.put(s, peerList.get(s) + 1);
+                        l.set(1, String.valueOf(time + 1));
+                        peerList.put(s, l);
                     }
                 }
                 try {
