@@ -4,15 +4,16 @@ import java.io.IOException;
 public class SyncService {
 
     private static final String BROADCAST_IP = "192.168.43.255";
+    private static final String PEER_ID = "DB";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/dms/sync/";
-    private static String databaseDirectory = "/home/dms/";
+    private static String syncDirectory = "/home/alarm/dms/sync/";
+    private static String databaseAndLogDirectory = "/home/alarm/dms/";
     private static String databaseName = "fileDB.txt";
-    private static final String PEER_ID = "DB";
 
+    public Logger logger;
     public WebServer webServer;
     public Discoverer discoverer;
     public FileManager fileManager;
@@ -20,11 +21,12 @@ public class SyncService {
     public Controller controller;
 
     public SyncService() {
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT);
-        fileManager = new FileManager(databaseName, databaseDirectory, syncDirectory);
-        fileTransporter = new FileTransporter(syncDirectory);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads);
-        webServer = new WebServer(8080, controller);
+        logger = new Logger(databaseAndLogDirectory, PEER_ID);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        fileManager = new FileManager(databaseName, databaseAndLogDirectory, syncDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger);
+        webServer = new WebServer(8080, controller, logger);
     }
 
 
@@ -37,7 +39,7 @@ public class SyncService {
         try {
             webServer.start();
         } catch(IOException ioe) {
-            Log.d("Httpd", "The server could not start.");
+            logger.d("Httpd", "The server could not start.");
         }
     }
 

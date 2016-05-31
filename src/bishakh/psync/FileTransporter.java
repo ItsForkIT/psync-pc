@@ -19,19 +19,21 @@ public class FileTransporter {
     public ConcurrentHashMap<Thread, ResumeDownloadThread> ongoingDownloadThreads = new ConcurrentHashMap<Thread, ResumeDownloadThread>();
     Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileTable>>(){}.getType();
     String syncDirectory;
+    Logger logger;
 
-    public FileTransporter(String syncDirectory){
+    public FileTransporter(String syncDirectory, Logger LoggerObj){
         this.syncDirectory = syncDirectory;
+        this.logger = LoggerObj;
     }
 
 
-    public void downloadFile(String fileID, String fileName, String peerIP, long startByte, long endByte) throws MalformedURLException {
+    public void downloadFile(String fileID, String fileName, String peerIP, String peerID, long startByte, long endByte, double fileSize) throws MalformedURLException {
         File f = new File(syncDirectory + "/" + fileName);
         URL fileUrl = new URL("http://"+ peerIP +":8080/getFile/" + fileID);
-        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, f, startByte, endByte);
+        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, f, startByte, endByte, fileSize, peerID);
         Thread t = new Thread(resumeDownloadThread);
         ongoingDownloadThreads.put(t, resumeDownloadThread);
-        Log.d("DEBUG:", "MISSING FILE DOWNLOAD START START BYTE = " + startByte + " END BYTE = " + endByte);
+        logger.d("DEBUG:", "MISSING FILE DOWNLOAD START START BYTE = " + startByte + " END BYTE = " + endByte);
         t.start();
     }
 
@@ -48,8 +50,10 @@ public class FileTransporter {
         boolean mState = true;
         long presentByte;
         public boolean isRunning = false;
+        double filesize;
+        String peerId;
 
-        public ResumeDownloadThread(URL url, String fileID, File outputFile, long startByte, long endByte){
+        public ResumeDownloadThread(URL url, String fileID, File outputFile, long startByte, long endByte, double fileSize, String peerID){
             this.url = url;
             this.outputFile = outputFile;
             this.startByte = startByte;
@@ -57,7 +61,8 @@ public class FileTransporter {
             this.isRunning = false;
             this.presentByte = startByte;
             this.fileID = fileID;
-
+            this.filesize = fileSize;
+            this.peerId = peerID;
         }
 
         @Override
@@ -71,7 +76,7 @@ public class FileTransporter {
                 isRunning = true;
                 // open Http connection to URL
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-                Log.d("DEBUG:FILE TRANSPORTER", "URl is" + url);
+                logger.d("DEBUG:FILE TRANSPORTER", "URl is" + url);
 
 
                 // set the range of byte to download
@@ -89,26 +94,26 @@ public class FileTransporter {
                 connection.setConnectTimeout( 5*1000);
                 connection.setReadTimeout(5*1000);
 
-                Log.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
+                logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 
                 // connect to server
                 connection.connect();
-                Log.d("DEBUG:FILE TRANSPORTER", "Callled connect with timeout " + connection.getConnectTimeout());
-                Log.d("DEBUG:FILE TRANSPORTER", ""+connection.getResponseCode());
+                logger.d("DEBUG:FILE TRANSPORTER", "Callled connect with timeout " + connection.getConnectTimeout());
+                logger.d("DEBUG:FILE TRANSPORTER", ""+connection.getResponseCode());
 
                 // Make sure the response code is in the 200 range.
                 if (connection.getResponseCode() / 100 != 2) {
-                    Log.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
+                    logger.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
                 }
 
-                Log.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
+                logger.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
                 // get the input stream
                 in = new BufferedInputStream(connection.getInputStream());
 
                 // open the output file and seek to the start location
                 raf = new RandomAccessFile(outputFile, "rw");
                 raf.seek(startByte);
-
+                logger.write("START_FILE_DOWNLOAD, " + fileID + ", " + startByte + ", " + this.filesize + ", " + this.peerId);
                 byte data[] = new byte[BUFFER_SIZE];
                 int numBytesRead;
                 while(/*(mState == DOWNLOADING) &&*/ ((numBytesRead = in.read(data,0,BUFFER_SIZE)) != -1))
@@ -127,7 +132,7 @@ public class FileTransporter {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.d("DEBUG:FILE TRANSPORTER", "Connection not established" + e);
+                logger.d("DEBUG:FILE TRANSPORTER", "Connection not established" + e);
             } finally {
                 isRunning = false;
                 if (raf != null) {
@@ -141,6 +146,7 @@ public class FileTransporter {
                         in.close();
                     } catch (IOException e) {}
                 }
+                logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
                 this.isRunning = false;
             }
         }
@@ -176,7 +182,7 @@ public class FileTransporter {
             try {
                 // open Http connection to URL
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-                Log.d("DEBUG:FILE TRANSPORTER", "URl is" + url);
+                logger.d("DEBUG:FILE TRANSPORTER", "URl is" + url);
 
 
                 // set the range of byte to download
@@ -188,19 +194,19 @@ public class FileTransporter {
                 connection.setConnectTimeout(5 * 1000);
                 connection.setReadTimeout(5 * 1000);
 
-                Log.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
+                logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 
                 // connect to server
                 connection.connect();
-                Log.d("DEBUG:FILE TRANSPORTER", "Callled connect with timeout " + connection.getConnectTimeout());
-                Log.d("DEBUG:FILE TRANSPORTER", "" + connection.getResponseCode());
+                logger.d("DEBUG:FILE TRANSPORTER", "Callled connect with timeout " + connection.getConnectTimeout());
+                logger.d("DEBUG:FILE TRANSPORTER", "" + connection.getResponseCode());
 
                 // Make sure the response code is in the 200 range.
                 if (connection.getResponseCode() / 100 != 2) {
-                    Log.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
+                    logger.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
                 }
 
-                Log.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
+                logger.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
                 // get the input stream
                 in = new BufferedInputStream(connection.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
@@ -212,7 +218,7 @@ public class FileTransporter {
 
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.d("DEBUG:FILE TRANSPORTER", "Connection not established" + e);
+                logger.d("DEBUG:FILE TRANSPORTER", "Connection not established" + e);
             } finally {
                 if (in != null) {
                     try {

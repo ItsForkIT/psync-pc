@@ -27,13 +27,15 @@ public class FileManager {
     final String DATABASE_NAME;
     final String DATABASE_PATH;
     final File FILES_PATH;
+    Logger logger;
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
-    public FileManager(String databaseName, String databaseDirectory, String syncDirectory){
+    public FileManager(String databaseName, String databaseDirectory, String syncDirectory, Logger loggerObj){
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
         this.FILES_PATH = new File(syncDirectory);
-        Log.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
+        this.logger = loggerObj;
+        logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
     }
 
@@ -62,11 +64,11 @@ public class FileManager {
         @Override
         public void run() {
             try {
-                Log.d("DEBUG", "FileManager Thread started");
+                logger.d("DEBUG", "FileManager Thread started");
                 this.exit = false;
                 this.isRunning = true;
                 while(!this.exit) {
-                    Log.d("DEBUG", "FileManager Scanning..");
+                    logger.d("DEBUG", "FileManager Scanning..");
                     updateFromFolder();
                     writeDB();
                     Thread.sleep(5*1000);
@@ -79,7 +81,7 @@ public class FileManager {
             this.exit = false;
             this.isRunning = false;
 
-            Log.d("DEBUG", "FileManager Thread Stopped");
+            logger.d("DEBUG", "FileManager Thread Stopped");
         }
 
         public void stop() {
@@ -109,7 +111,7 @@ public class FileManager {
         FileTable newFileInfo = new FileTable( fileID, fileName, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus);
         fileTableHashMap.put( fileID, newFileInfo);
-        Log.d("DEBUG", "FileManager Add to DB: " + fileName);
+        logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
     public void setEndSequence(String fileID, long endByte){
@@ -126,7 +128,7 @@ public class FileManager {
             }
 
             fileTable.setSequence(newSeq);
-            Log.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
+            logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
 
@@ -139,7 +141,7 @@ public class FileManager {
             newSeq.add(1, endByte);
 
             fileTable.setSequence(newSeq);
-            Log.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
+            logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
 
@@ -173,7 +175,7 @@ public class FileManager {
      * Deserialize data
      */
     private void readDB() {
-        Log.d("DEBUG", "FileManager reading from fileDB");
+        logger.d("DEBUG", "FileManager reading from fileDB");
         try{
             BufferedReader br = new BufferedReader(new FileReader(DATABASE_PATH));
 
@@ -221,7 +223,7 @@ public class FileManager {
                 catch(Exception e){
                     ttl = "50";
                 }
-                Log.d("DEBUG", ttl);
+                logger.d("DEBUG", ttl);
                 String destination = "DB";
                 enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false);
             }
@@ -234,7 +236,7 @@ public class FileManager {
             boolean check = new File(FILES_PATH + "/" + fileName).exists();
             if(!check){
                 fileTableHashMap.remove(key);
-                Log.d("DEBUG", "FileManaager Remove from DB " + fileName);
+                logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
 
             }
         }

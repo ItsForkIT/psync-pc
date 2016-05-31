@@ -23,6 +23,7 @@ public class Discoverer {
     String BROADCAST_IP;
     int PORT;
     String PEER_ID;
+    Logger logger;
     final Thread[] thread = new Thread[3];
     final BroadcastThread broadcastThread;
     final ListenThread listenThread;
@@ -30,10 +31,11 @@ public class Discoverer {
 
     public volatile ConcurrentHashMap<String, ArrayList<String>> peerList;
 
-    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT) {
+    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj) {
         this.BROADCAST_IP = BROADCAST_IP;
         this.PORT = PORT;
         this.PEER_ID = PEER_ID;
+        this.logger = LoggerObj;
 
         peerList = new ConcurrentHashMap<String, ArrayList<String>>();
         // peerList format PEER_IP : [PEER_ID, timeAfterLastBroadcast]
@@ -67,10 +69,10 @@ public class Discoverer {
         */
         if (!listenThread.isRunning) {
             if (thread[1].isAlive()) {
-                Log.d("LISTENER", "REVIVING");
+                logger.d("LISTENER", "REVIVING");
                 listenThread.revive();
             } else {
-                Log.d("LISTENER", "STARTING");
+                logger.d("LISTENER", "STARTING");
                 thread[1] = new Thread(listenThread);
                 thread[1].start();
             }
@@ -78,9 +80,9 @@ public class Discoverer {
     }
 
     public void stopListener() {
-        Log.d("LISTENER", "STOPPING");
+        logger.d("LISTENER", "STOPPING");
         if (!listenThread.exit) {
-            Log.d("LISTENER", "STOPPING2");
+            logger.d("LISTENER", "STOPPING2");
             listenThread.stop();
         }
     }
@@ -141,11 +143,11 @@ public class Discoverer {
                     datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
                     try {
                         datagramSocket.send(datagramPacket);
-                        Log.d("DEBUG", "Broadcast Packet Sent");
+                        logger.d("DEBUG", "Broadcast Packet Sent");
                     }
                     catch (Exception e){
                         e.printStackTrace();
-                        Log.d("DEBUG", "Broadcast Packet Sending Failed");
+                        logger.d("DEBUG", "Broadcast Packet Sending Failed");
                     }
                     Thread.sleep(3000);
                 }
@@ -163,7 +165,7 @@ public class Discoverer {
             this.exit = false;
             this.isRunning = false;
 
-            Log.d("DEBUG", "Broadcasting Stopped");
+            logger.d("DEBUG", "Broadcasting Stopped");
         }
 
         public void stop() {
@@ -195,7 +197,7 @@ public class Discoverer {
                 datagramSocket.setBroadcast(true);
                 datagramSocket.setSoTimeout(200);
 
-                Log.d("DEBUG", "ListenerThread Start");
+                logger.d("DEBUG", "ListenerThread Start");
                 this.isRunning = true;
                 while(!this.exit) {
                     buffer = new byte[15000];
@@ -241,7 +243,7 @@ public class Discoverer {
             }
             this.exit = false;
             this.isRunning = false;
-            Log.d("DEBUG", "ListenerThread Stop");
+            logger.d("DEBUG", "ListenerThread Stop");
 
         }
 
@@ -269,7 +271,10 @@ public class Discoverer {
             ArrayList<String> l = new ArrayList<String>();
             l.add(peerID);
             l.add(0 + "");
-            Log.d("DEBUG", "ListenerThread Receive Broadcaset:" + peerID);
+            logger.d("DEBUG", "ListenerThread Receive Broadcaset:" + peerID);
+            if(peerList.get(peerIP) == null){
+                logger.write("PEER_DISCOVERED, " + peerID + ", " + peerIP);
+            }
             peerList.put(peerIP, l);
         }
     }
@@ -290,8 +295,9 @@ public class Discoverer {
                     ArrayList<String> l = peerList.get(s);
                     int time = Integer.parseInt(l.get(1));
                     if(time >= 10) {
+                        logger.write("PEER_LOST, " + l.get(0) + ", " + s);
                         peerList.remove(s);
-                        Log.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));
+                        logger.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));
                     } else {
                         l.set(1, String.valueOf(time + 1));
                         peerList.put(s, l);

@@ -10,10 +10,12 @@ import java.util.Map;
 
 public class WebServer extends NanoHTTPD {
     Controller controller;
+    Logger logger;
 
-    public WebServer(int port, Controller controller) {
+    public WebServer(int port, Controller controller, Logger LoggerObj) {
         super(port);
         this.controller = controller;
+        this.logger = LoggerObj;
 
     }
 
@@ -24,7 +26,7 @@ public class WebServer extends NanoHTTPD {
                           Map<String, String> files) {
         String path = controller.urlResolver(uri);
         File f;
-        Log.d("DEBUG", "WebServer: GET: " + path);
+        logger.d("DEBUG", "WebServer: GET: " + path);
         if(!path.equals("")){
             f = new File(path);
             String mimeType =  "application/octet-stream";
@@ -50,12 +52,12 @@ public class WebServer extends NanoHTTPD {
     private Response serveFile(String uri, Map<String, String> header,
                                File file, String mime) {
         Response res;
-        Log.d("DEBUG", "Starting response");
+        logger.d("DEBUG", "Starting response");
         try {
             // Calculate etag
             String etag = Integer.toHexString((file.getAbsolutePath()
                     + file.lastModified() + "" + file.length()).hashCode());
-            Log.d("DEBUG", "Etag calculated");
+            logger.d("DEBUG", "Etag calculated");
 
             // Support (simple) skipping:
             long startFrom = 0;
@@ -63,7 +65,7 @@ public class WebServer extends NanoHTTPD {
             String range = header.get("range");
             if (range != null) {
                 if (range.startsWith("bytes=")) {
-                    Log.d("DEBUG", "Range not null");
+                    logger.d("DEBUG", "Range not null");
                     range = range.substring("bytes=".length());
                     int minus = range.indexOf('-');
                     try {
@@ -86,7 +88,7 @@ public class WebServer extends NanoHTTPD {
                             NanoHTTPD.MIME_PLAINTEXT, new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8)), "".length());
                     res.addHeader("Content-Range", "bytes 0-0/" + fileLen);
                     res.addHeader("ETag", etag);
-                    Log.d("DEBUG", "Range not satisfiable");
+                    logger.d("DEBUG", "Range not satisfiable");
                 } else {
                     if (endAt < 0) {
                         endAt = fileLen - 1;
@@ -111,7 +113,7 @@ public class WebServer extends NanoHTTPD {
                     res.addHeader("Content-Range", "bytes " + startFrom + "-"
                             + endAt + "/" + fileLen);
                     res.addHeader("ETag", etag);
-                    Log.d("DEBUG", "partial content");
+                    logger.d("DEBUG", "partial content");
                 }
             } else {
                 if (etag.equals(header.get("if-none-match"))) {
@@ -121,7 +123,7 @@ public class WebServer extends NanoHTTPD {
                             new FileInputStream(file), fileLen);
                     res.addHeader("Content-Length", "" + fileLen);
                     res.addHeader("ETag", etag);
-                    Log.d("DEBUG", "not modified");
+                    logger.d("DEBUG", "not modified");
                     res.addHeader("Content-Disposition", "attachment; filename=" + "\"" + file.getName()+"\"");
                 }
             }
