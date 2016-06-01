@@ -112,6 +112,17 @@ public class Discoverer {
         stopPeerExpiry();
     }
 
+    public boolean HPnodePresent(){
+        boolean present = false;
+        for(String peerID : peerList.keySet()){
+            if(peerList.get(peerID).get(0).contains("DB")){
+                present = true;
+                break;
+            }
+        }
+        return present;
+    }
+
 
     /**
      * Thread to broadcast Datagram packets

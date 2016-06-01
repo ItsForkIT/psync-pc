@@ -30,7 +30,7 @@ public class FileTransporter {
     public void downloadFile(String fileID, String fileName, String peerIP, String peerID, long startByte, long endByte, double fileSize) throws MalformedURLException {
         File f = new File(syncDirectory + "/" + fileName);
         URL fileUrl = new URL("http://"+ peerIP +":8080/getFile/" + fileID);
-        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, f, startByte, endByte, fileSize, peerID);
+        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, fileName, f, startByte, endByte, fileSize, peerID);
         Thread t = new Thread(resumeDownloadThread);
         ongoingDownloadThreads.put(t, resumeDownloadThread);
         logger.d("DEBUG:", "MISSING FILE DOWNLOAD START START BYTE = " + startByte + " END BYTE = " + endByte);
@@ -45,6 +45,7 @@ public class FileTransporter {
         final int BUFFER_SIZE = 10240;
 
         public String fileID;
+        public  String fileName;
         boolean mIsFinished = false;
         boolean DOWNLOADING = true;
         boolean mState = true;
@@ -53,7 +54,7 @@ public class FileTransporter {
         double filesize;
         String peerId;
 
-        public ResumeDownloadThread(URL url, String fileID, File outputFile, long startByte, long endByte, double fileSize, String peerID){
+        public ResumeDownloadThread(URL url, String fileID, String filename, File outputFile, long startByte, long endByte, double fileSize, String peerID){
             this.url = url;
             this.outputFile = outputFile;
             this.startByte = startByte;
@@ -63,6 +64,7 @@ public class FileTransporter {
             this.fileID = fileID;
             this.filesize = fileSize;
             this.peerId = peerID;
+            this.fileName = filename;
         }
 
         @Override
@@ -113,7 +115,7 @@ public class FileTransporter {
                 // open the output file and seek to the start location
                 raf = new RandomAccessFile(outputFile, "rw");
                 raf.seek(startByte);
-                logger.write("START_FILE_DOWNLOAD, " + fileID + ", " + startByte + ", " + this.filesize + ", " + this.peerId);
+                logger.write("START_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + startByte + ", " + this.filesize + ", " + this.peerId);
                 byte data[] = new byte[BUFFER_SIZE];
                 int numBytesRead;
                 while(/*(mState == DOWNLOADING) &&*/ ((numBytesRead = in.read(data,0,BUFFER_SIZE)) != -1))
@@ -146,7 +148,7 @@ public class FileTransporter {
                         in.close();
                     } catch (IOException e) {}
                 }
-                logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
+                logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
                 this.isRunning = false;
             }
         }

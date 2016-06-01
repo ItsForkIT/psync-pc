@@ -90,7 +90,9 @@ public class Controller {
             if(parameter.substring(0, 7).equals("getFile")){
                 String fileID = parameter.substring(8);
                 logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
-                return fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName();
+                if(!discoverer.HPnodePresent()){
+                    return fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName();
+                }
             }
 
             return "";
@@ -176,6 +178,19 @@ public class Controller {
                 }
             }
         }
+
+        // Put missing files in priority list (not sorted now)
+        priorityDownloadList.clear();
+        fileTablePeerID.clear();
+        // arrange files to be downloaded according to priority
+        for(String p : missingFileTableHashMap.keySet()) {
+            for(String fileID : missingFileTableHashMap.get(p).keySet()) {
+                int priority = missingFileTableHashMap.get(p).get(fileID).getPriority();
+                //String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
+                priorityDownloadList.put(""+priority, missingFileTableHashMap.get(p).get(fileID));
+                fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
+            }
+        }
     }
 
     /**
@@ -210,17 +225,7 @@ public class Controller {
 
     void startDownloadingMissingFiles(){
         if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
-            priorityDownloadList.clear();
-            fileTablePeerID.clear();
-            // arrange files to be downloaded according to priority
-            for(String p : missingFileTableHashMap.keySet()) {
-                for(String fileID : missingFileTableHashMap.get(p).keySet()) {
-                    int priority = missingFileTableHashMap.get(p).get(fileID).getPriority();
-                    //String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
-                    priorityDownloadList.put(""+priority, missingFileTableHashMap.get(p).get(fileID));
-                    fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
-                }
-            }
+
 
             // sort this list according to priority
             Map<String, FileTable> priorityDownloadListSorted = new TreeMap<>(priorityDownloadList);
