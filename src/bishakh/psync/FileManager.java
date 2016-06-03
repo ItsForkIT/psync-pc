@@ -29,6 +29,7 @@ public class FileManager {
     final File FILES_PATH;
     Logger logger;
     private FileManagerThread fileManagerThread = new FileManagerThread();
+    Long chunkSize = Long.valueOf(1048576); // 1 MB in bytes
 
     public FileManager(String databaseName, String databaseDirectory, String syncDirectory, Logger loggerObj){
         this.DATABASE_NAME = databaseName;
@@ -107,9 +108,10 @@ public class FileManager {
      * @param destinationReachedStatus
      */
     private void enterFile(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                          String timestamp, String ttl, String destination, boolean destinationReachedStatus){
+                          String timestamp, String ttl, String destination, boolean destinationReachedStatus,
+                           List<Integer> chunkAvailable){
         FileTable newFileInfo = new FileTable( fileID, fileName, sequence, fileSize, priority, timestamp,
-                ttl, destination, destinationReachedStatus);
+                ttl, destination, destinationReachedStatus, chunkAvailable);
         fileTableHashMap.put( fileID, newFileInfo);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
@@ -215,19 +217,33 @@ public class FileManager {
                 List seq = new ArrayList();
                 seq.add(0, 0);
                 seq.add(1, fileSize);
+
+                /*
+                Find out the number of chunks required for the file
+                Map them as present
+                 */
+                List<Integer> chunkAvailable = new ArrayList<>();
+                long temp = fileSize;
+                int pos = 0;
+                while (temp > 0) {
+                    chunkAvailable.add( pos, 1);
+                    temp = temp - chunkSize;
+                    pos++;
+                }
+
                 String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
                 String ttl;
                 try {
                     ttl = file.getName().split("_")[1];
                 }
-                catch(Exception e){
+                catch(Exception e) {
                     ttl = "50";
                 }
                 logger.d("DEBUG", ttl);
                 String destination = "DB";
-                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false);
+                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp,
+                        ttl, destination, false, chunkAvailable);
             }
-
         }
 
         for (String key : fileTableHashMap.keySet()) {
@@ -294,9 +310,11 @@ class FileTable implements java.io.Serializable{
     private String ttl;
     private String destination;
     private boolean destinationReachedStatus;
+    private List<Integer> chunkAvailable;
 
     public FileTable(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                     String timestamp, String ttl, String destination, boolean destinationReachedStatus){
+                     String timestamp, String ttl, String destination, boolean destinationReachedStatus,
+                     List<Integer> chunkAvailable){
         this.fileID = fileID;
         this.fileName = fileName;
         this.sequence = sequence;
@@ -306,6 +324,7 @@ class FileTable implements java.io.Serializable{
         this.ttl = ttl;
         this.destination = destination;
         this.destinationReachedStatus = destinationReachedStatus;
+        this.chunkAvailable = chunkAvailable;
     }
 
     String getFileID(){
@@ -343,6 +362,8 @@ class FileTable implements java.io.Serializable{
     boolean getDestinationReachedStatus(){
         return this.destinationReachedStatus;
     }
+
+    List<Integer> getChunkAvailable() { return this.chunkAvailable; }
 
     void setTtl(String ttl) {
         this.ttl = ttl;
