@@ -80,23 +80,52 @@ public class Controller {
         }
     }
 
-    public String urlResolver(String  uri){
+    public List<String> urlResolver(String  uri){
+        List<String> FileAndMime = new ArrayList<String>();
+
         String parameter = uri.substring(1);
         logger.d("DEBUG", "Controller URL Request recv: " + parameter);
-        if(parameter.equals("list")){
-            return fileManager.DATABASE_PATH;
-        }
-        else {
-            if(parameter.substring(0, 7).equals("getFile")){
-                String fileID = parameter.substring(8);
-                logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
-                if(!discoverer.HPnodePresent()){
-                    return fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName();
-                }
-            }
 
-            return "";
+        if(parameter.equals("list")){
+            FileAndMime.add(0, fileManager.DATABASE_PATH);
+            FileAndMime.add(1, "application/octet-stream");
+            return FileAndMime;
         }
+
+        if(parameter.substring(0, 7).equals("getFile")){
+            String fileID = parameter.substring(8);
+            logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
+            if(!discoverer.HPnodePresent()){
+                FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName());
+                FileAndMime.add(1, "application/octet-stream");
+                return FileAndMime;
+            }
+        }
+
+        if(parameter.substring(0, 7).equals("getTile")){
+            String tileID = parameter.substring(8);
+            FileAndMime.add(0, fileManager.MAP_DIR_PATH + "/tiles/" + tileID);
+            FileAndMime.add(1, "application/octet-stream");
+            return FileAndMime;
+        }
+
+        if(parameter.substring(0, 11).equals("getMapAsset")){
+            String fileName = parameter.substring(12);
+            FileAndMime.add(0, fileManager.MAP_DIR_PATH + fileName);
+            FileAndMime.add(1, "text/html");
+            if(parameter.endsWith(".css")){
+                FileAndMime.set(1, "text/css");
+            }
+            if(parameter.endsWith(".html")){
+                FileAndMime.set(1, "text/html");
+            }
+            return FileAndMime;
+        }
+
+        FileAndMime.add(0, "");
+        FileAndMime.add(1, "");
+        return FileAndMime;
+
     }
 
     /**

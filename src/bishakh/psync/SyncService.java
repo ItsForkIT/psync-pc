@@ -9,8 +9,9 @@ public class SyncService {
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/alarm/dms/sync/";
-    private static String databaseAndLogDirectory = "/home/alarm/dms/";
+    private static String syncDirectory = "/home/bishakh/dms/sync/";
+    private static String mapFileServerDirectory = "/home/bishakh/dms/map/";
+    private static String databaseAndLogDirectory = "/home/bishakh/dms/";
     private static String databaseName = "fileDB.txt";
 
     public Logger logger;
@@ -23,7 +24,7 @@ public class SyncService {
     public SyncService() {
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
-        fileManager = new FileManager(databaseName, databaseAndLogDirectory, syncDirectory, logger);
+        fileManager = new FileManager(databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger);
         webServer = new WebServer(8080, controller, logger);

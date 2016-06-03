@@ -26,15 +26,17 @@ public class FileManager {
     Gson gson = new Gson();
     final String DATABASE_NAME;
     final String DATABASE_PATH;
+    final String MAP_DIR_PATH;
     final File FILES_PATH;
     Logger logger;
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
-    public FileManager(String databaseName, String databaseDirectory, String syncDirectory, Logger loggerObj){
+    public FileManager(String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
         this.FILES_PATH = new File(syncDirectory);
         this.logger = loggerObj;
+        this.MAP_DIR_PATH = mapDir;
         logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
     }
