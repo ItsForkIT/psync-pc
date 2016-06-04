@@ -107,42 +107,48 @@ public class FileManager {
      * @param destination
      * @param destinationReachedStatus
      */
-    private void enterFile(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                          String timestamp, String ttl, String destination, boolean destinationReachedStatus,
-                           List<Integer> chunkAvailable){
+    private void enterFile(String fileID, String fileName, ConcurrentHashMap<Integer, List<Long>> sequence,
+                           double fileSize, int priority, String timestamp, String ttl, String destination,
+                           boolean destinationReachedStatus, List<Integer> chunkAvailable){
         FileTable newFileInfo = new FileTable( fileID, fileName, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, chunkAvailable);
         fileTableHashMap.put( fileID, newFileInfo);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
-    public void setEndSequence(String fileID, long endByte){
+    public void setEndSequence(String fileID, int chunkNumber, long endByte){
         FileTable fileTable = fileTableHashMap.get(fileID);
         if(fileTable != null){
-            List<Long> prevSeq = fileTable.getSequence();
-            List<Long> newSeq = new ArrayList<Long>();
-            newSeq.add(0, prevSeq.get(0));
-            if(endByte > prevSeq.get(1)) {
-                newSeq.add(1, endByte);
+            List<Long> prevSeqList = fileTable.getSequence().get(chunkNumber);
+            List<Long> newSeqList = new ArrayList<Long>();
+            newSeqList.add(0, prevSeqList.get(0));
+            if(endByte > prevSeqList.get(1)) {
+                newSeqList.add(1, endByte);
             }
             else {
-                newSeq.add(1, prevSeq.get(1));
+                newSeqList.add(1, prevSeqList.get(1));
             }
 
-            fileTable.setSequence(newSeq);
+            // replace the old sequence with the new one
+            ConcurrentHashMap<Integer, List<Long>> newSeq = fileTable.getSequence();
+            newSeq.put( chunkNumber, newSeqList);
+            fileTable.setSequence( newSeq);
             logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
 
-    public void forceSetEndSequence(String fileID, long endByte){
+    public void forceSetEndSequence(String fileID, int chunkNumber, long endByte){
         FileTable fileTable = fileTableHashMap.get(fileID);
         if(fileTable != null){
-            List<Long> newSeq = new ArrayList<Long>();
-            newSeq.add(0, (long)0); // check this
+            List<Long> newSeqList = new ArrayList<Long>();
+            newSeqList.add(0, (long)0); // check this
 
-            newSeq.add(1, endByte);
+            newSeqList.add(1, endByte);
 
-            fileTable.setSequence(newSeq);
+            // replace the old sequence with the new one
+            ConcurrentHashMap<Integer, List<Long>> newSeq = fileTable.getSequence();
+            newSeq.put( chunkNumber, newSeqList);
+            fileTable.setSequence( newSeq);
             logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
@@ -214,9 +220,8 @@ public class FileManager {
             String fileID = getFileIDFromPath(file);
             if(fileTableHashMap.get(fileID) == null){
                 long fileSize = file.length();
-                List seq = new ArrayList();
-                seq.add(0, 0);
-                seq.add(1, fileSize);
+                
+                ConcurrentHashMap<Integer, List<Long>> sequence = new ConcurrentHashMap<>();
 
                 /*
                 Find out the number of chunks required for the file
@@ -230,6 +235,22 @@ public class FileManager {
                     temp = temp - chunkSize;
                     pos++;
                 }
+                /*
+                Set sequence of the file
+                 */
+                long startByte = 0;
+                int i;
+                for (i = 0; i < pos-1; i++) {
+                    List<Long> sequenceList = new ArrayList<>();
+                    sequenceList.add(0, startByte);
+                    sequenceList.add(1, startByte + chunkSize);
+                    sequence.put(i,sequenceList);
+                    startByte = startByte + chunkSize;
+                }
+                List<Long> sequenceList = new ArrayList<>();
+                sequenceList.add(0, startByte);
+                sequenceList.add(1, fileSize);
+                sequence.put(i, sequenceList);
 
                 String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
                 String ttl;
@@ -241,7 +262,7 @@ public class FileManager {
                 }
                 logger.d("DEBUG", ttl);
                 String destination = "DB";
-                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp,
+                enterFile(fileID, file.getName(), sequence, fileSize, Integer.parseInt(ttl), timeStamp,
                         ttl, destination, false, chunkAvailable);
             }
         }
@@ -303,7 +324,7 @@ public class FileManager {
 class FileTable implements java.io.Serializable{
     private String fileID;
     private String fileName;
-    private List<Long> sequence;
+    private ConcurrentHashMap<Integer, List<Long>> sequence;
     private double fileSize;
     private int priority;
     private String timestamp;
@@ -312,8 +333,9 @@ class FileTable implements java.io.Serializable{
     private boolean destinationReachedStatus;
     private List<Integer> chunkAvailable;
 
-    public FileTable(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                     String timestamp, String ttl, String destination, boolean destinationReachedStatus,
+    public FileTable(String fileID, String fileName, ConcurrentHashMap<Integer, List<Long>> sequence,
+                     double fileSize, int priority, String timestamp, String ttl, String destination,
+                     boolean destinationReachedStatus,
                      List<Integer> chunkAvailable){
         this.fileID = fileID;
         this.fileName = fileName;
@@ -335,7 +357,7 @@ class FileTable implements java.io.Serializable{
         return this.fileName;
     }
 
-    List<Long> getSequence() {
+    ConcurrentHashMap<Integer, List<Long>> getSequence() {
         return this.sequence;
     }
 
@@ -369,7 +391,7 @@ class FileTable implements java.io.Serializable{
         this.ttl = ttl;
     }
 
-    void setSequence(List<Long> sequence){
+    void setSequence(ConcurrentHashMap<Integer, List<Long>> sequence){
         this.sequence = sequence;
     }
 
