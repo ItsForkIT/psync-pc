@@ -220,7 +220,7 @@ public class FileManager {
             String fileID = getFileIDFromPath(file);
             if(fileTableHashMap.get(fileID) == null){
                 long fileSize = file.length();
-                
+
                 ConcurrentHashMap<Integer, List<Long>> sequence = new ConcurrentHashMap<>();
 
                 /*
@@ -397,5 +397,9 @@ class FileTable implements java.io.Serializable{
 
     void setDestinationReachedStatus(boolean status){
         this.destinationReachedStatus = status;
+    }
+
+    void setChunkAvailable(List<Integer> chunkAvailable ) {
+        this.chunkAvailable = chunkAvailable;
     }
 }
