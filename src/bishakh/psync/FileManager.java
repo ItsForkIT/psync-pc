@@ -116,9 +116,15 @@ public class FileManager {
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
-    public void setEndSequence(String fileID, int chunkNumber, long endByte){
+    public void setEndSequence(String fileID, long endByte){
         FileTable fileTable = fileTableHashMap.get(fileID);
         if(fileTable != null){
+            int chunkNumber;
+            if( endByte%chunkSize != 0) {
+                chunkNumber = (int)(endByte/chunkSize); // check this chunknumber can be long in some situations
+            } else {
+                chunkNumber = (int)(endByte/chunkSize) - 1; // check this chunknumber can be long in some situations
+            }
             List<Long> prevSeqList = fileTable.getSequence().get(chunkNumber);
             List<Long> newSeqList = new ArrayList<Long>();
             newSeqList.add(0, prevSeqList.get(0));

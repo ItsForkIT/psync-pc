@@ -132,7 +132,7 @@ public class Controller {
                 Find whether the peer has any file which is missing in device
                  */
                 endByte = 0;
-                List<Long> endBytes = new ArrayList<>(); // store endbytes of the missing chunks
+                List<Long> endBytes = new ArrayList<>(); // store end bytes of the missing chunks
                 boolean isMissing = true;
                 for(String myFiles : fileManager.fileTableHashMap.keySet()) {
                     if(files.equals(myFiles) == true) { // check whether file is same as remote file
@@ -292,13 +292,17 @@ public class Controller {
                         // we have files sorted according to priority ... use fileTablePeerID to get the peer id of the files
                         FileTable fileTable = priorityDownloadListSorted.get(priority);
                         for(int i = 0; i < fileTable.getChunkAvailable().size(); i++) {
-
+                            // download only missing chunks
+                            if(priorityDownloadListSorted.get(priority).getChunkAvailable().get(i) == 0) {
+                                fileTransporter.downloadFile(priorityDownloadListSorted.get(priority).getFileID(),
+                                        priorityDownloadListSorted.get(priority).getFileName(),
+                                        peerIP, peerID,
+                                        priorityDownloadListSorted.get(priority).getSequence().get(i).get(0),   // start of chunk
+                                        priorityDownloadListSorted.get(priority).getSequence().get(i).get(1),   // end of chunk
+                                        priorityDownloadListSorted.get(priority).getFileSize());
+                            }
                         }
-                        fileTransporter.downloadFile(priorityDownloadListSorted.get(priority).getFileID(),
-                                priorityDownloadListSorted.get(priority).getFileName(),
-                                peerIP, peerID,
-                                priorityDownloadListSorted.get(priority).getSequence().get(1),
-                                -1, priorityDownloadListSorted.get(priority).getFileSize());
+
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
