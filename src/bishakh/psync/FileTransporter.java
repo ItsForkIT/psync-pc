@@ -27,10 +27,12 @@ public class FileTransporter {
     }
 
 
-    public void downloadFile(String fileID, String fileName, String peerIP, String peerID, long startByte, long endByte, double fileSize) throws MalformedURLException {
+    public void downloadFile(String fileID, String fileName, String peerIP, String peerID,
+                             long startByte, long endByte, double fileSize) throws MalformedURLException {
         File f = new File(syncDirectory + "/" + fileName);
         URL fileUrl = new URL("http://"+ peerIP +":8080/getFile/" + fileID);
-        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, fileName, f, startByte, endByte, fileSize, peerID);
+        ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID,
+                fileName, f, startByte, endByte, fileSize, peerID);
         Thread t = new Thread(resumeDownloadThread);
         ongoingDownloadThreads.put(t, resumeDownloadThread);
         logger.d("DEBUG:", "MISSING FILE DOWNLOAD START START BYTE = " + startByte + " END BYTE = " + endByte);
@@ -54,7 +56,8 @@ public class FileTransporter {
         double filesize;
         String peerId;
 
-        public ResumeDownloadThread(URL url, String fileID, String filename, File outputFile, long startByte, long endByte, double fileSize, String peerID){
+        public ResumeDownloadThread(URL url, String fileID, String filename, File outputFile,
+                                    long startByte, long endByte, double fileSize, String peerID){
             this.url = url;
             this.outputFile = outputFile;
             this.startByte = startByte;
