@@ -4,12 +4,12 @@ import java.io.IOException;
 public class SyncService {
 
     private static final String BROADCAST_IP = "192.168.43.255";
-    private static final String PEER_ID = "DB";
+    private static final String PEER_ID = "MCS";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/bishakh/dms/sync/";
+    private static String syncDirectory = "/home/bishakh/dms/map/tiles/";
     private static String mapFileServerDirectory = "/home/bishakh/dms/map/";
     private static String databaseAndLogDirectory = "/home/bishakh/dms/";
     private static String databaseName = "fileDB.txt";

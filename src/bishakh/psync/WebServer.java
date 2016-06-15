@@ -43,7 +43,9 @@ public class WebServer extends NanoHTTPD {
 
                 try {
                     FileInputStream fileIS = new FileInputStream(path);
-                    return new Response(Response.Status.OK, mimeType,fileIS, fileIS.getChannel().size());
+                    Response res = new Response(Response.Status.OK, mimeType,fileIS, fileIS.getChannel().size());
+                    res.addHeader("Access-Control-Allow-Origin", "*");
+                    return res;
                 } catch (IOException e) {
                     //e.printStackTrace();
                     return createResponse(Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, new ByteArrayInputStream("404".getBytes(StandardCharsets.UTF_8)), "404".length());

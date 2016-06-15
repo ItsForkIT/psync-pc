@@ -72,6 +72,7 @@ public class FileTransporter {
             this.isRunning = true;
             BufferedInputStream in = null;
             RandomAccessFile raf = null;
+            int response = 0;
 
             try {
                 String byteRange;
@@ -108,29 +109,31 @@ public class FileTransporter {
                     logger.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
                 }
 
-                logger.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
-                // get the input stream
-                in = new BufferedInputStream(connection.getInputStream());
+                else {
+                    response = 200;
+                    logger.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
+                    // get the input stream
+                    in = new BufferedInputStream(connection.getInputStream());
 
-                // open the output file and seek to the start location
-                raf = new RandomAccessFile(outputFile, "rw");
-                raf.seek(startByte);
-                logger.write("START_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + startByte + ", " + this.filesize + ", " + this.peerId);
-                byte data[] = new byte[BUFFER_SIZE];
-                int numBytesRead;
-                while(/*(mState == DOWNLOADING) &&*/ ((numBytesRead = in.read(data,0,BUFFER_SIZE)) != -1))
-                {
-                    // write to buffer
-                    raf.write(data,0,numBytesRead);
-                    this.presentByte = this.presentByte + numBytesRead;
-                    // increase the startByte for resume later
-                    startByte += numBytesRead;
-                    // increase the downloaded size
-                    //Log.d("DEBUG:FILE TRANSPORTER", "Fetching  data " + startByte);
-                }
+                    // open the output file and seek to the start location
+                    raf = new RandomAccessFile(outputFile, "rw");
+                    raf.seek(startByte);
+                    logger.write("START_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + startByte + ", " + this.filesize + ", " + this.peerId);
+                    byte data[] = new byte[BUFFER_SIZE];
+                    int numBytesRead;
+                    while (/*(mState == DOWNLOADING) &&*/ ((numBytesRead = in.read(data, 0, BUFFER_SIZE)) != -1)) {
+                        // write to buffer
+                        raf.write(data, 0, numBytesRead);
+                        this.presentByte = this.presentByte + numBytesRead;
+                        // increase the startByte for resume later
+                        startByte += numBytesRead;
+                        // increase the downloaded size
+                        //Log.d("DEBUG:FILE TRANSPORTER", "Fetching  data " + startByte);
+                    }
 
-                if (mState == DOWNLOADING) {
-                    mIsFinished = true;
+                    if (mState == DOWNLOADING) {
+                        mIsFinished = true;
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -148,7 +151,9 @@ public class FileTransporter {
                         in.close();
                     } catch (IOException e) {}
                 }
-                logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
+                if(response == 200) {
+                    logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
+                }
                 this.isRunning = false;
             }
         }

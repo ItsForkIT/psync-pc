@@ -7,10 +7,10 @@ import java.io.*;
 import java.lang.reflect.Type;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -29,6 +29,11 @@ public class FileManager {
     final String MAP_DIR_PATH;
     final File FILES_PATH;
     Logger logger;
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+
+    HashMap<Set<String>, Integer> countOfTypes;
+    HashMap <String, Integer> countOfFilesInTile;
+
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
     public FileManager(String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
@@ -39,6 +44,8 @@ public class FileManager {
         this.MAP_DIR_PATH = mapDir;
         logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
+        this.countOfTypes = new HashMap<>();
+        this.countOfFilesInTile = new HashMap<>();
     }
 
     public void startFileManager(){
@@ -65,11 +72,17 @@ public class FileManager {
 
         @Override
         public void run() {
+            int count = 6;
             try {
                 logger.d("DEBUG", "FileManager Thread started");
                 this.exit = false;
                 this.isRunning = true;
                 while(!this.exit) {
+                    if(count > 4){
+                        updateImportanceOfFilesAndTiles();
+                        count = 0;
+                    }
+                    count += 1;
                     logger.d("DEBUG", "FileManager Scanning..");
                     updateFromFolder();
                     writeDB();
@@ -109,9 +122,9 @@ public class FileManager {
      * @param destinationReachedStatus
      */
     private void enterFile(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                          String timestamp, String ttl, String destination, boolean destinationReachedStatus){
+                          String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
         FileTable newFileInfo = new FileTable( fileID, fileName, sequence, fileSize, priority, timestamp,
-                ttl, destination, destinationReachedStatus);
+                ttl, destination, destinationReachedStatus, importance);
         fileTableHashMap.put( fileID, newFileInfo);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
@@ -158,14 +171,6 @@ public class FileManager {
             fileWriter.flush();
             fileWriter.close();
 
-            /*
-            FileOutputStream fileOutputStream = new FileOutputStream(DATABASE_PATH);
-            ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
-            objectOutputStream.writeObject(fileTableHashMap);
-            objectOutputStream.close();
-            fileOutputStream.close();
-            */
-
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -183,22 +188,10 @@ public class FileManager {
 
             //convert the json string back to object
             fileTableHashMap = (ConcurrentHashMap<String, FileTable>)gson.fromJson(br, ConcurrentHashMapType);
-            /*
-            FileInputStream fileInputStream = new FileInputStream(DATABASE_PATH);
-            ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
-            fileTableHashMap = (ConcurrentHashMap<String, FileTable>) objectInputStream.readObject();
-            objectInputStream.close();
-            fileInputStream.close();
-            */
+
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        } /*catch (StreamCorruptedException e) {
-            e.printStackTrace();
-        }*/ /*catch (IOException e) {
-            e.printStackTrace();
-        }*/ /*catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }*/
+        }
     }
 
     /**
@@ -221,13 +214,21 @@ public class FileManager {
                 String ttl;
                 try {
                     ttl = file.getName().split("_")[1];
+                    int i = Integer.parseInt(ttl);
                 }
                 catch(Exception e){
                     ttl = "50";
                 }
                 logger.d("DEBUG", ttl);
                 String destination = "DB";
-                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false);
+                double imp = -1;
+                if(file.getName().startsWith("MapDisarm_Log_")){
+                    imp = 1000;
+                }
+                if(file.getName().startsWith("IMG_")){
+                    imp = 0;
+                }
+                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
             }
 
         }
@@ -235,11 +236,14 @@ public class FileManager {
         for (String key : fileTableHashMap.keySet()) {
             FileTable fileInfo = fileTableHashMap.get(key);
             String fileName = fileInfo.getFileName();
+            List<Long> seq = fileInfo.getSequence();
+            if(seq.get(1) != 0){
             boolean check = new File(FILES_PATH + "/" + fileName).exists();
             if(!check){
                 fileTableHashMap.remove(key);
                 logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
 
+            }
             }
         }
     }
@@ -280,7 +284,212 @@ public class FileManager {
     }
 
 
+    public void removeOldGpsLogs(String fileID){
+
+
+        final String newLogName = fileTableHashMap.get(fileID).getFileName();
+
+        if(newLogName.startsWith("MapDisarm_Log")) {
+            /* find all log files of same node*/
+            logger.d("DEBUG", "REMOVING OLD LOG FILES IF ANY");
+            File[] logFileList = this.FILES_PATH.listFiles(new FilenameFilter() {
+                public boolean accept(File file, String s) {
+                    return s.startsWith(newLogName.substring(0, newLogName.length() - 19));
+                }
+            });
+
+            long latestdate = 0;
+            /* Keep the latest log */
+            for (File file : logFileList) {
+                logger.d("CHECKING LOG" , file.getName());
+                String thisFileDate = file.getName().split("_")[3];
+                // now exclude .txt:
+                thisFileDate = thisFileDate.substring(4, thisFileDate.length() - 4);
+                if(latestdate < Integer.parseInt(thisFileDate)){
+                    latestdate = Long.parseLong(thisFileDate);
+                }
+            }
+
+            /* now remove all old logs from this node */
+            for (File file : logFileList) {
+                String thisFileDate = file.getName().split("_")[3];
+                // now exclude .txt:
+                thisFileDate = thisFileDate.substring(4, thisFileDate.length() - 4);
+                if(latestdate != Long.parseLong(thisFileDate)){
+                    logger.write("REMOVING LOG" + file.getName());
+                    String fileid = getFileIDFromPath(file);
+                    file.delete();
+                    fileTableHashMap.remove(fileid);
+                }
+                else {
+                    logger.write("KEEPING LOG" + file.getName());
+                }
+            }
+
+        }
+    }
+
+    public boolean checkIfOldGPSLog(final String fileName){
+
+        if(fileName.startsWith("MapDisarm_Log")) {
+            /* find all log files of same node*/
+            logger.write("CHECKING OLD LOG FILES IF ANY");
+
+            File[] logFileList = this.FILES_PATH.listFiles(new FilenameFilter() {
+                public boolean accept(File file, String s) {
+                    return s.startsWith(fileName.substring(0, fileName.length()-19));
+                }
+            });
+            long latestdate = 0;
+            /* Keep the latest log */
+            for (File file : logFileList) {
+                logger.d("CHECKING LOG" , file.getName());
+                String thisFileDate = file.getName().split("_")[3];
+                // now exclude .txt:
+                thisFileDate = thisFileDate.substring(4, thisFileDate.length() - 4);
+                if(latestdate < Integer.parseInt(thisFileDate)){
+                    latestdate = Long.parseLong(thisFileDate);
+                }
+            }
+
+            /* now check if this is old */
+            String inputFileDate = fileName.split("_")[3];
+            inputFileDate = inputFileDate.substring(4, inputFileDate.length() - 4);
+                if(latestdate > Long.parseLong(inputFileDate)){
+                    return true;
+                }
+                else {
+                    return false;
+                }
+
+        }
+        else {
+            return false;
+        }
+    }
+
+    public String getTileXYString(double lat, double lon){
+        int zoom = 18;
+
+        int xtile = (int)Math.floor( (lon + 180) / 360 * (1<<zoom) ) ;
+        int ytile = (int)Math.floor( (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1<<zoom) ) ;
+        if (xtile < 0)
+            xtile=0;
+        if (xtile >= (1<<zoom))
+            xtile=((1<<zoom)-1);
+        if (ytile < 0)
+            ytile=0;
+        if (ytile >= (1<<zoom))
+            ytile=((1<<zoom)-1);
+        return("" + zoom + "-" + xtile + "-" + ytile + ".topojson");
+    }
+
+    public void updateCountOfTypes(){
+        countOfTypes.clear();
+
+        for (String fileID : fileTableHashMap.keySet()) {
+            FileTable fileTable = fileTableHashMap.get(fileID);
+            String fileName = fileTable.getFileName();
+            if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) > 0){
+                Set<String> typeSet = new HashSet<>();
+                String typesString = fileName.split("_")[1];
+                String[] typesArray = typesString.split("-");
+                for(String typeStr:typesArray ){
+                    typeSet.add(typeStr);
+                }
+                if(countOfTypes.get(typeSet) == null){
+                    countOfTypes.put(typeSet, 0);
+                }
+                countOfTypes.put(typeSet, countOfTypes.get(typeSet) + 1);
+            }
+        }
+    }
+
+    public void updateImportanceOfFilesAndTiles(){
+        logger.d("DEBUG: ", " CALCULATING FILE IMPORTANCE");
+        updateCountOfTypes();
+        countOfFilesInTile.clear();
+        double totalCountOfAllDataFiles = 0;
+        int totalCountOfAllTypeSets = 0;
+        for( Set<String> typeSet:countOfTypes.keySet()){
+            totalCountOfAllTypeSets = totalCountOfAllTypeSets + countOfTypes.get(typeSet);
+        }
+
+        for (String fileID : fileTableHashMap.keySet()) {
+            FileTable fileTable = fileTableHashMap.get(fileID);
+            String fileName = fileTable.getFileName();
+            if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) != 0){
+                totalCountOfAllDataFiles += 1;
+                // Calculate Rank if the file is at least partially received
+
+                String typesString = fileName.split("_")[1];
+                String[] typesArray = typesString.split("-");
+                Set<String> typeSet = new HashSet<>();
+                for(String typeStr:typesArray ){
+                    typeSet.add(typeStr);
+                }
+                int countOfTypeSetInThisFile = countOfTypes.get(typeSet);
+
+                double proportion = (double) countOfTypeSetInThisFile / (double) totalCountOfAllTypeSets;
+                logger.d("ImportanceCalculator: ", "Proportion of " + typesString + " : " + proportion);
+
+                double informationOfFile = (double)(-1) * (Math.log(proportion) / Math.log((double)2));
+                logger.d("ImportanceCalculator: ", "Information of " + typesString + " : " + informationOfFile);
+
+                Date originDate = null;
+
+                try {
+                    originDate = dateFormat.parse(fileName.split("_")[4]);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+
+                if(originDate != null){
+                    // calculate aging and set importance
+                    Date currentDate = new Date();
+                    double ageInSeconds = (currentDate.getTime() - originDate.getTime())/1000.0;
+                    double ageInHours = ageInSeconds / (double) 3600.0;
+                    logger.d("ImportanceCalculator: ", "Age of " + fileName + " : " + ageInSeconds);
+
+                    double importanceValue = informationOfFile * Math.pow(2.71828, ((double)(-1.0) * ageInHours));
+                    logger.d("ImportanceCalculator: ", "Importance of " + fileName + " : " + importanceValue);
+                    fileTableHashMap.get(fileID).setImportance(importanceValue);
+                }
+
+                // update Count of files in Tiles
+                double lat = Double.parseDouble(fileName.split("_")[2]);
+                double lon = Double.parseDouble(fileName.split("_")[3]);
+                String tileName = getTileXYString(lat, lon);
+
+                if(countOfFilesInTile.get(tileName) == null){
+                    countOfFilesInTile.put(tileName, 0);
+                }
+                countOfFilesInTile.put(tileName, countOfFilesInTile.get(tileName) + 1);
+
+            }
+
+        }
+
+        // set importance of tiles
+        for (String fileID : fileTableHashMap.keySet()) {
+            String fileName = fileTableHashMap.get(fileID).getFileName();
+            if(fileName.startsWith("18-")){
+
+                if(countOfFilesInTile.get(fileName) != null){
+                    fileTableHashMap.get(fileID).setImportance( (double)(-1) + countOfFilesInTile.get(fileName) / totalCountOfAllDataFiles);
+                }
+                else {
+                    fileTableHashMap.get(fileID).setImportance( (double)(-1));
+                }
+            }
+        }
+    }
+
+
 }
+
+
+
 
 
 /**
@@ -296,9 +505,10 @@ class FileTable implements java.io.Serializable{
     private String ttl;
     private String destination;
     private boolean destinationReachedStatus;
+    private double importance;
 
     public FileTable(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
-                     String timestamp, String ttl, String destination, boolean destinationReachedStatus){
+                     String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
         this.fileID = fileID;
         this.fileName = fileName;
         this.sequence = sequence;
@@ -308,6 +518,7 @@ class FileTable implements java.io.Serializable{
         this.ttl = ttl;
         this.destination = destination;
         this.destinationReachedStatus = destinationReachedStatus;
+        this.importance = importance;
     }
 
     String getFileID(){
@@ -346,6 +557,10 @@ class FileTable implements java.io.Serializable{
         return this.destinationReachedStatus;
     }
 
+    double getImportance() { return  this.importance; }
+
+    void setImportance(double imp) { this.importance = imp; }
+
     void setTtl(String ttl) {
         this.ttl = ttl;
     }
@@ -357,4 +572,5 @@ class FileTable implements java.io.Serializable{
     void setDestinationReachedStatus(boolean status){
         this.destinationReachedStatus = status;
     }
+
 }
