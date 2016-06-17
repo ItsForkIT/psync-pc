@@ -42,6 +42,8 @@ public class MapDataProcessor {
                 RandomAccessFile f = new RandomAccessFile(file, "r");
                 b = new byte[(int)f.length()];
                 f.read(b);
+                logFileOS.write(file.getName().getBytes());
+                logFileOS.write("\n".getBytes());
                 logFileOS.write(b);
             } catch (IOException e) {
                 e.printStackTrace();

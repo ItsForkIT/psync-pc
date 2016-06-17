@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FileManager {
 
-    ConcurrentHashMap<String, FileTable> fileTableHashMap = new ConcurrentHashMap<String, FileTable>();
+    ConcurrentHashMap<String, FileTable> fileTableHashMap;
     Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileTable>>(){}.getType();
     Gson gson = new Gson();
     final String DATABASE_NAME;
@@ -32,11 +32,14 @@ public class FileManager {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
     HashMap<Set<String>, Integer> countOfTypes;
-    HashMap <String, Integer> countOfFilesInTile;
+    HashMap <String, Double> impOfFilesInTile;
+    HashMap <String, Double> diffImpOfFilesInTile;
+    double maxImportanceOfaTile;
 
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
     public FileManager(String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
+        this.fileTableHashMap = new ConcurrentHashMap<>();
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
         this.FILES_PATH = new File(syncDirectory);
@@ -45,7 +48,8 @@ public class FileManager {
         logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
         this.countOfTypes = new HashMap<>();
-        this.countOfFilesInTile = new HashMap<>();
+        this.impOfFilesInTile = new HashMap<>();
+        this.diffImpOfFilesInTile = new HashMap<>();
     }
 
     public void startFileManager(){
@@ -78,14 +82,14 @@ public class FileManager {
                 this.exit = false;
                 this.isRunning = true;
                 while(!this.exit) {
+                    logger.d("DEBUG", "FileManager Scanning..");
+                    updateFromFolder();
+                    writeDB();
                     if(count > 4){
                         updateImportanceOfFilesAndTiles();
                         count = 0;
                     }
                     count += 1;
-                    logger.d("DEBUG", "FileManager Scanning..");
-                    updateFromFolder();
-                    writeDB();
                     Thread.sleep(5*1000);
                 }
             }
@@ -368,8 +372,7 @@ public class FileManager {
         }
     }
 
-    public String getTileXYString(double lat, double lon){
-        int zoom = 18;
+    public String getTileXYString(double lat, double lon, int zoom){
 
         int xtile = (int)Math.floor( (lon + 180) / 360 * (1<<zoom) ) ;
         int ytile = (int)Math.floor( (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1<<zoom) ) ;
@@ -405,12 +408,86 @@ public class FileManager {
         }
     }
 
+    public void addDiffuseImpOfTile(int x, int y , int z, Double ImpD){
+        String tileName = "" + z + "-" + x + "-" + y + ".topojson";
+        if(diffImpOfFilesInTile.get(tileName) == null) {
+            diffImpOfFilesInTile.put(tileName, 0.0);
+        }
+        diffImpOfFilesInTile.put(tileName, (diffImpOfFilesInTile.get(tileName) + ImpD));
+        //logger.d("DEBUG: ", "update importance of tile " + tileName + " " + ImpD);
+        if(maxImportanceOfaTile < diffImpOfFilesInTile.get(tileName)){
+            maxImportanceOfaTile = diffImpOfFilesInTile.get(tileName);
+        }
+    }
+
+
+    public void recurseDiffuseImpOfTile(int x, int y , int z, Double ImpD, int depth){
+        if(depth < 5) {
+            // new importance
+            ImpD = ImpD / Math.pow(10, depth);
+
+            // calculate corner points
+            int c1x = x - depth;
+            int c1y = y - depth;
+            addDiffuseImpOfTile(c1x, c1y, z, ImpD);
+
+            int c2x = x + depth;
+            int c2y = y - depth;
+            addDiffuseImpOfTile(c2x, c2y, z, ImpD);
+
+            int c3x = x - depth;
+            int c3y = y + depth;
+            addDiffuseImpOfTile(c3x, c3y, z, ImpD);
+
+            int c4x = x + depth;
+            int c4y = y + depth;
+            addDiffuseImpOfTile(c4x, c4y, z, ImpD);
+
+            // keep x-depth constant
+            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
+                addDiffuseImpOfTile(c1x, y + i, z, ImpD);
+            }
+            // keep y-depth constant
+            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
+                addDiffuseImpOfTile(x + i, c1y, z, ImpD);
+            }
+            // keep x+depth constant
+            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
+                addDiffuseImpOfTile(c4x, y + i, z, ImpD);
+            }
+            // keep y+depth constant
+            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
+                addDiffuseImpOfTile(x + i, c4y,  z, ImpD);
+            }
+
+            // new depth
+            depth = depth + 1;
+            recurseDiffuseImpOfTile(x, y, z, ImpD, depth);
+        }
+
+
+    }
+
+
+    public  void diffuseImpOfFilesInTile(String tileName){
+        // ID = importanceOfAllDataInThisTile
+        Double ImpD  = impOfFilesInTile.get(tileName);
+        tileName = tileName.split("\\.")[0];
+        int z = Integer.parseInt(tileName.split("-")[0]);
+        int x = Integer.parseInt(tileName.split("-")[1]);
+        int y = Integer.parseInt(tileName.split("-")[2]);
+        addDiffuseImpOfTile(x, y, z, ImpD);
+
+        recurseDiffuseImpOfTile(x, y, z, ImpD, 1);
+    }
+
     public void updateImportanceOfFilesAndTiles(){
         logger.d("DEBUG: ", " CALCULATING FILE IMPORTANCE");
         updateCountOfTypes();
-        countOfFilesInTile.clear();
-        double totalCountOfAllDataFiles = 0;
+        impOfFilesInTile.clear();
+        diffImpOfFilesInTile.clear();
         int totalCountOfAllTypeSets = 0;
+        maxImportanceOfaTile = 0;
         for( Set<String> typeSet:countOfTypes.keySet()){
             totalCountOfAllTypeSets = totalCountOfAllTypeSets + countOfTypes.get(typeSet);
         }
@@ -419,7 +496,6 @@ public class FileManager {
             FileTable fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
             if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) != 0){
-                totalCountOfAllDataFiles += 1;
                 // Calculate Rank if the file is at least partially received
 
                 String typesString = fileName.split("_")[1];
@@ -459,15 +535,19 @@ public class FileManager {
                 // update Count of files in Tiles
                 double lat = Double.parseDouble(fileName.split("_")[2]);
                 double lon = Double.parseDouble(fileName.split("_")[3]);
-                String tileName = getTileXYString(lat, lon);
+                String tileName = getTileXYString(lat, lon, 18);
 
-                if(countOfFilesInTile.get(tileName) == null){
-                    countOfFilesInTile.put(tileName, 0);
+                if(impOfFilesInTile.get(tileName) == null){
+                    impOfFilesInTile.put(tileName, 0.0);
                 }
-                countOfFilesInTile.put(tileName, countOfFilesInTile.get(tileName) + 1);
+                impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + fileTableHashMap.get(fileID).getImportance()));
 
             }
 
+        }
+
+        for (String tileName : impOfFilesInTile.keySet()){
+            diffuseImpOfFilesInTile(tileName);
         }
 
         // set importance of tiles
@@ -475,8 +555,8 @@ public class FileManager {
             String fileName = fileTableHashMap.get(fileID).getFileName();
             if(fileName.startsWith("18-")){
 
-                if(countOfFilesInTile.get(fileName) != null){
-                    fileTableHashMap.get(fileID).setImportance( (double)(-1) + countOfFilesInTile.get(fileName) / totalCountOfAllDataFiles);
+                if(diffImpOfFilesInTile.get(fileName) != null){
+                    fileTableHashMap.get(fileID).setImportance( (double)(-1) + diffImpOfFilesInTile.get(fileName) / maxImportanceOfaTile);
                 }
                 else {
                     fileTableHashMap.get(fileID).setImportance( (double)(-1));
