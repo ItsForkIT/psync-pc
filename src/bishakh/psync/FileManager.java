@@ -31,7 +31,7 @@ public class FileManager {
     Logger logger;
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
-    HashMap<Set<String>, Integer> countOfTypes;
+    HashMap<Set<String>, Integer> countOfTypesWithSpace;
     HashMap <String, Double> impOfFilesInTile;
     HashMap <String, Double> diffImpOfFilesInTile;
     double maxImportanceOfaTile;
@@ -47,7 +47,7 @@ public class FileManager {
         this.MAP_DIR_PATH = mapDir;
         logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
-        this.countOfTypes = new HashMap<>();
+        this.countOfTypesWithSpace = new HashMap<>();
         this.impOfFilesInTile = new HashMap<>();
         this.diffImpOfFilesInTile = new HashMap<>();
     }
@@ -387,23 +387,28 @@ public class FileManager {
         return("" + zoom + "-" + xtile + "-" + ytile + ".topojson");
     }
 
-    public void updateCountOfTypes(){
-        countOfTypes.clear();
+    public void updateCountOfTypesWithSpace(){
+        countOfTypesWithSpace.clear();
 
         for (String fileID : fileTableHashMap.keySet()) {
             FileTable fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
             if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) > 0){
-                Set<String> typeSet = new HashSet<>();
+                Set<String> typeSpaceSet = new HashSet<>();
                 String typesString = fileName.split("_")[1];
                 String[] typesArray = typesString.split("-");
                 for(String typeStr:typesArray ){
-                    typeSet.add(typeStr);
+                    typeSpaceSet.add(typeStr);
                 }
-                if(countOfTypes.get(typeSet) == null){
-                    countOfTypes.put(typeSet, 0);
+                double lat = Double.parseDouble(fileName.split("_")[2]);
+                double lon = Double.parseDouble(fileName.split("_")[3]);
+                String tileName = getTileXYString(lat, lon, 16);
+                typeSpaceSet.add(tileName);
+
+                if(countOfTypesWithSpace.get(typeSpaceSet) == null){
+                    countOfTypesWithSpace.put(typeSpaceSet, 0);
                 }
-                countOfTypes.put(typeSet, countOfTypes.get(typeSet) + 1);
+                countOfTypesWithSpace.put(typeSpaceSet, countOfTypesWithSpace.get(typeSpaceSet) + 1);
             }
         }
     }
@@ -483,13 +488,13 @@ public class FileManager {
 
     public void updateImportanceOfFilesAndTiles(){
         logger.d("DEBUG: ", " CALCULATING FILE IMPORTANCE");
-        updateCountOfTypes();
+        updateCountOfTypesWithSpace();
         impOfFilesInTile.clear();
         diffImpOfFilesInTile.clear();
         int totalCountOfAllTypeSets = 0;
         maxImportanceOfaTile = 0;
-        for( Set<String> typeSet:countOfTypes.keySet()){
-            totalCountOfAllTypeSets = totalCountOfAllTypeSets + countOfTypes.get(typeSet);
+        for( Set<String> typeSet:countOfTypesWithSpace.keySet()){
+            totalCountOfAllTypeSets = totalCountOfAllTypeSets + countOfTypesWithSpace.get(typeSet);
         }
 
         for (String fileID : fileTableHashMap.keySet()) {
@@ -500,11 +505,16 @@ public class FileManager {
 
                 String typesString = fileName.split("_")[1];
                 String[] typesArray = typesString.split("-");
-                Set<String> typeSet = new HashSet<>();
+                Set<String> typeSpaceSet = new HashSet<>();
                 for(String typeStr:typesArray ){
-                    typeSet.add(typeStr);
+                    typeSpaceSet.add(typeStr);
                 }
-                int countOfTypeSetInThisFile = countOfTypes.get(typeSet);
+                double lat_ = Double.parseDouble(fileName.split("_")[2]);
+                double lon_ = Double.parseDouble(fileName.split("_")[3]);
+                String tileSpaceName = getTileXYString(lat_, lon_, 16);
+                typeSpaceSet.add(tileSpaceName);
+
+                int countOfTypeSetInThisFile = countOfTypesWithSpace.get(typeSpaceSet);
 
                 double proportion = (double) countOfTypeSetInThisFile / (double) totalCountOfAllTypeSets;
                 logger.d("ImportanceCalculator: ", "Proportion of " + typesString + " : " + proportion);
