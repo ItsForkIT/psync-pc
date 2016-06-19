@@ -427,9 +427,9 @@ public class FileManager {
 
 
     public void recurseDiffuseImpOfTile(int x, int y , int z, Double ImpD, int depth){
-        if(depth < 5) {
+        if(depth < 3) {
             // new importance
-            ImpD = ImpD / Math.pow(10, depth);
+            ImpD = ImpD / Math.pow(2, depth);
 
             // calculate corner points
             int c1x = x - depth;
@@ -520,6 +520,9 @@ public class FileManager {
                 logger.d("ImportanceCalculator: ", "Proportion of " + typesString + " : " + proportion);
 
                 double informationOfFile = (double)(-1) * (Math.log(proportion) / Math.log((double)2));
+                if(informationOfFile == -0.0){
+                    informationOfFile = 0;
+                }
                 logger.d("ImportanceCalculator: ", "Information of " + typesString + " : " + informationOfFile);
 
                 Date originDate = null;
@@ -554,7 +557,28 @@ public class FileManager {
 
             }
 
+            // add gps trail importance to tiles
+            if(fileName.startsWith("MapDisarm_Log_") && fileTable.getSequence().get(1) != 0){
+                File logfile = new File(FILES_PATH + "/" + fileName);
+                try (BufferedReader br = new BufferedReader(new FileReader(logfile))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        double lat = Double.parseDouble(line.split(",")[0]);
+                        double lon = Double.parseDouble(line.split(",")[1]);
+                        String tileName = getTileXYString(lat, lon, 18);
+                        if(impOfFilesInTile.get(tileName) == null){
+                            impOfFilesInTile.put(tileName, 0.0);
+                        }
+                        impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + 1.0));
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
         }
+
+
 
         for (String tileName : impOfFilesInTile.keySet()){
             diffuseImpOfFilesInTile(tileName);

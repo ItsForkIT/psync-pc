@@ -177,20 +177,21 @@ public class Controller {
                 /*
                 Find whether the peer has any file which is missing in device
                  */
+                if (remotePeerFileTableHashMap.get(peers).get(files) != null){
                 endByte = 0;
                 boolean isMissing = true;
                 remoteEndByte = remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1);
-                for(String myFiles : fileManager.fileTableHashMap.keySet()) {
-                    if(files.equals(myFiles) == true) { // check whether file is same as remote file
-                        logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
-                        logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
+                for (String myFiles : fileManager.fileTableHashMap.keySet()) {
+                    if (files.equals(myFiles) == true) { // check whether file is same as remote file
+                        //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
+                        //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
                         if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) ==
                                 fileManager.fileTableHashMap.get(myFiles).getFileSize()) { // complete file available
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE COMPLETE");
                             break;
-                        }else {
+                        } else {
                             if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) <
                                     remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1)) {
                                 isMissing = true;
@@ -204,13 +205,13 @@ public class Controller {
                         }
                     }
                 }
-                if(isMissing) { // file is missing
+                if (isMissing) { // file is missing
                     //Log.d("DEBUG: ", "MISSING FILE TRUE");
 
                     // Mark missing only if remote peer has > 0 bit data
-                    if(remoteEndByte > 0) {
+                    if (remoteEndByte > 0) {
                         // CHECK IF IT IS AN OLD GPS LOG
-                        if(!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).get(files).getFileName())) {
+                        if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).get(files).getFileName())) {
                             if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
                                 missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileTable>());
                             }
@@ -225,20 +226,23 @@ public class Controller {
 
 
                     // Make file manager entry
-                    if(fileManager.fileTableHashMap.get(files) == null){
+                    if (fileManager.fileTableHashMap.get(files) == null) {
                         fileManager.fileTableHashMap.put(files, remotePeerFileTableHashMap.get(peers).get(files));
                         fileManager.forceSetEndSequence(files, endByte);
                     }
 
                 }
             }
+            }
         }
 
         // Put missing files in fileTable->PeerID map
         fileTablePeerID.clear();
         for(String p : missingFileTableHashMap.keySet()) {
-            for(String fileID : missingFileTableHashMap.get(p).keySet()) {
-                fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
+            if(missingFileTableHashMap.get(p) != null) {
+                for (String fileID : missingFileTableHashMap.get(p).keySet()) {
+                    fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
+                }
             }
         }
     }
