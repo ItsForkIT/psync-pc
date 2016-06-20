@@ -227,7 +227,7 @@ public class FileManager {
                 String destination = "DB";
                 double imp = -1;
                 if(file.getName().startsWith("MapDisarm_Log_")){
-                    imp = 1000;
+                    imp = 99999999999999.99;
                 }
                 if(file.getName().startsWith("IMG_")){
                     imp = 0;
@@ -429,7 +429,7 @@ public class FileManager {
     public void recurseDiffuseImpOfTile(int x, int y , int z, Double ImpD, int depth){
         if(depth < 3) {
             // new importance
-            ImpD = ImpD / Math.pow(2, depth);
+            ImpD = ImpD / Math.pow(10, depth);
 
             // calculate corner points
             int c1x = x - depth;
@@ -541,7 +541,7 @@ public class FileManager {
                     logger.d("ImportanceCalculator: ", "Age of " + fileName + " : " + ageInSeconds);
 
                     double importanceValue = informationOfFile * Math.pow(2.71828, ((double)(-1.0) * ageInHours));
-                    logger.d("ImportanceCalculator: ", "Importance of " + fileName + " : " + importanceValue);
+                    logger.write("SET FILE IMPORTANCE " + fileName + " " + importanceValue);
                     fileTableHashMap.get(fileID).setImportance(importanceValue);
                 }
 
@@ -553,7 +553,7 @@ public class FileManager {
                 if(impOfFilesInTile.get(tileName) == null){
                     impOfFilesInTile.put(tileName, 0.0);
                 }
-                impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + fileTableHashMap.get(fileID).getImportance()));
+                impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + 2.0 + fileTableHashMap.get(fileID).getImportance()));
 
             }
 
@@ -590,7 +590,9 @@ public class FileManager {
             if(fileName.startsWith("18-")){
 
                 if(diffImpOfFilesInTile.get(fileName) != null){
-                    fileTableHashMap.get(fileID).setImportance( (double)(-1) + diffImpOfFilesInTile.get(fileName) / maxImportanceOfaTile);
+                    double imp = (double)(-1) + diffImpOfFilesInTile.get(fileName) / maxImportanceOfaTile;
+                    fileTableHashMap.get(fileID).setImportance(imp);
+                    logger.write("SET TILE IMPORTANCE " + fileName + " " + imp);
                 }
                 else {
                     fileTableHashMap.get(fileID).setImportance( (double)(-1));
