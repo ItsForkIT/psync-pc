@@ -32,8 +32,6 @@ public class FileManager {
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
     HashMap<Set<String>, Integer> countOfTypesWithSpace;
-    HashMap <String, Double> impOfFilesInTile;
-    HashMap <String, Double> diffImpOfFilesInTile;
     double maxImportanceOfaTile;
 
     private FileManagerThread fileManagerThread = new FileManagerThread();
@@ -48,8 +46,6 @@ public class FileManager {
         logger.d("DEBUG", " Starting FileManager with directories: " + this.FILES_PATH + ", " + this.DATABASE_PATH);
         readDB();
         this.countOfTypesWithSpace = new HashMap<>();
-        this.impOfFilesInTile = new HashMap<>();
-        this.diffImpOfFilesInTile = new HashMap<>();
     }
 
     public void startFileManager(){
@@ -229,9 +225,9 @@ public class FileManager {
                 if(file.getName().startsWith("MapDisarm_Log_")){
                     imp = 99999999999999.99;
                 }
-                if(file.getName().startsWith("IMG_")){
+                /*if(file.getName().startsWith("IMG_")){
                     imp = 0;
-                }
+                }*/
                 enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
             }
 
@@ -393,15 +389,16 @@ public class FileManager {
         for (String fileID : fileTableHashMap.keySet()) {
             FileTable fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
-            if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) > 0){
+            if((fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
+                    fileName.startsWith("TXT_") || fileName.startsWith("SMS_")) && fileTable.getSequence().get(1) > 0){
                 Set<String> typeSpaceSet = new HashSet<>();
-                String typesString = fileName.split("_")[1];
+                String typesString = fileName.split("_")[2];
                 String[] typesArray = typesString.split("-");
                 for(String typeStr:typesArray ){
                     typeSpaceSet.add(typeStr);
                 }
-                double lat = Double.parseDouble(fileName.split("_")[2]);
-                double lon = Double.parseDouble(fileName.split("_")[3]);
+                double lat = Double.parseDouble(fileName.split("_")[5]);
+                double lon = Double.parseDouble(fileName.split("_")[6]);
                 String tileName = getTileXYString(lat, lon, 16);
                 typeSpaceSet.add(tileName);
 
@@ -413,84 +410,13 @@ public class FileManager {
         }
     }
 
-    public void addDiffuseImpOfTile(int x, int y , int z, Double ImpD){
-        String tileName = "" + z + "-" + x + "-" + y + ".topojson";
-        if(diffImpOfFilesInTile.get(tileName) == null) {
-            diffImpOfFilesInTile.put(tileName, 0.0);
-        }
-        diffImpOfFilesInTile.put(tileName, (diffImpOfFilesInTile.get(tileName) + ImpD));
-        //logger.d("DEBUG: ", "update importance of tile " + tileName + " " + ImpD);
-        if(maxImportanceOfaTile < diffImpOfFilesInTile.get(tileName)){
-            maxImportanceOfaTile = diffImpOfFilesInTile.get(tileName);
-        }
-    }
 
 
-    public void recurseDiffuseImpOfTile(int x, int y , int z, Double ImpD, int depth){
-        if(depth < 3) {
-            // new importance
-            ImpD = ImpD / Math.pow(10, depth);
 
-            // calculate corner points
-            int c1x = x - depth;
-            int c1y = y - depth;
-            addDiffuseImpOfTile(c1x, c1y, z, ImpD);
-
-            int c2x = x + depth;
-            int c2y = y - depth;
-            addDiffuseImpOfTile(c2x, c2y, z, ImpD);
-
-            int c3x = x - depth;
-            int c3y = y + depth;
-            addDiffuseImpOfTile(c3x, c3y, z, ImpD);
-
-            int c4x = x + depth;
-            int c4y = y + depth;
-            addDiffuseImpOfTile(c4x, c4y, z, ImpD);
-
-            // keep x-depth constant
-            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
-                addDiffuseImpOfTile(c1x, y + i, z, ImpD);
-            }
-            // keep y-depth constant
-            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
-                addDiffuseImpOfTile(x + i, c1y, z, ImpD);
-            }
-            // keep x+depth constant
-            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
-                addDiffuseImpOfTile(c4x, y + i, z, ImpD);
-            }
-            // keep y+depth constant
-            for (int i = (-1) * (depth - 1); i < depth; i += 1) {
-                addDiffuseImpOfTile(x + i, c4y,  z, ImpD);
-            }
-
-            // new depth
-            depth = depth + 1;
-            recurseDiffuseImpOfTile(x, y, z, ImpD, depth);
-        }
-
-
-    }
-
-
-    public  void diffuseImpOfFilesInTile(String tileName){
-        // ID = importanceOfAllDataInThisTile
-        Double ImpD  = impOfFilesInTile.get(tileName);
-        tileName = tileName.split("\\.")[0];
-        int z = Integer.parseInt(tileName.split("-")[0]);
-        int x = Integer.parseInt(tileName.split("-")[1]);
-        int y = Integer.parseInt(tileName.split("-")[2]);
-        addDiffuseImpOfTile(x, y, z, ImpD);
-
-        recurseDiffuseImpOfTile(x, y, z, ImpD, 1);
-    }
 
     public void updateImportanceOfFilesAndTiles(){
         logger.d("DEBUG: ", " CALCULATING FILE IMPORTANCE");
         updateCountOfTypesWithSpace();
-        impOfFilesInTile.clear();
-        diffImpOfFilesInTile.clear();
         int totalCountOfAllTypeSets = 0;
         maxImportanceOfaTile = 0;
         for( Set<String> typeSet:countOfTypesWithSpace.keySet()){
@@ -500,17 +426,19 @@ public class FileManager {
         for (String fileID : fileTableHashMap.keySet()) {
             FileTable fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
-            if(fileName.startsWith("IMG_") && fileTable.getSequence().get(1) != 0){
+            if(fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
+                    fileName.startsWith("TXT_") || fileName.startsWith("SMS_")){
+            if(fileTable.getSequence().get(1) != 0){
                 // Calculate Rank if the file is at least partially received
 
-                String typesString = fileName.split("_")[1];
+                String typesString = fileName.split("_")[2];
                 String[] typesArray = typesString.split("-");
                 Set<String> typeSpaceSet = new HashSet<>();
                 for(String typeStr:typesArray ){
                     typeSpaceSet.add(typeStr);
                 }
-                double lat_ = Double.parseDouble(fileName.split("_")[2]);
-                double lon_ = Double.parseDouble(fileName.split("_")[3]);
+                double lat_ = Double.parseDouble(fileName.split("_")[5]);
+                double lon_ = Double.parseDouble(fileName.split("_")[6]);
                 String tileSpaceName = getTileXYString(lat_, lon_, 16);
                 typeSpaceSet.add(tileSpaceName);
 
@@ -528,7 +456,7 @@ public class FileManager {
                 Date originDate = null;
 
                 try {
-                    originDate = dateFormat.parse(fileName.split("_")[4]);
+                    originDate = dateFormat.parse(fileName.split("_")[7]);
                 } catch (ParseException e) {
                     e.printStackTrace();
                 }
@@ -545,57 +473,6 @@ public class FileManager {
                     fileTableHashMap.get(fileID).setImportance(importanceValue);
                 }
 
-                // update Count of files in Tiles
-                double lat = Double.parseDouble(fileName.split("_")[2]);
-                double lon = Double.parseDouble(fileName.split("_")[3]);
-                String tileName = getTileXYString(lat, lon, 18);
-
-                if(impOfFilesInTile.get(tileName) == null){
-                    impOfFilesInTile.put(tileName, 0.0);
-                }
-                impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + 2.0 + fileTableHashMap.get(fileID).getImportance()));
-
-            }
-
-            // add gps trail importance to tiles
-            if(fileName.startsWith("MapDisarm_Log_") && fileTable.getSequence().get(1) != 0){
-                File logfile = new File(FILES_PATH + "/" + fileName);
-                try (BufferedReader br = new BufferedReader(new FileReader(logfile))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        double lat = Double.parseDouble(line.split(",")[0]);
-                        double lon = Double.parseDouble(line.split(",")[1]);
-                        String tileName = getTileXYString(lat, lon, 18);
-                        if(impOfFilesInTile.get(tileName) == null){
-                            impOfFilesInTile.put(tileName, 0.0);
-                        }
-                        impOfFilesInTile.put(tileName, (impOfFilesInTile.get(tileName) + 1.0));
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        }
-
-
-
-        for (String tileName : impOfFilesInTile.keySet()){
-            diffuseImpOfFilesInTile(tileName);
-        }
-
-        // set importance of tiles
-        for (String fileID : fileTableHashMap.keySet()) {
-            String fileName = fileTableHashMap.get(fileID).getFileName();
-            if(fileName.startsWith("18-")){
-
-                if(diffImpOfFilesInTile.get(fileName) != null){
-                    double imp = (double)(-1) + diffImpOfFilesInTile.get(fileName) / maxImportanceOfaTile;
-                    fileTableHashMap.get(fileID).setImportance(imp);
-                    logger.write("SET TILE IMPORTANCE " + fileName + " " + imp);
-                }
-                else {
-                    fileTableHashMap.get(fileID).setImportance( (double)(-1));
                 }
             }
         }

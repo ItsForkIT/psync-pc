@@ -9,9 +9,9 @@ public class SyncService {
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/bishakh/dms/map/tiles/";
-    private static String mapFileServerDirectory = "/home/bishakh/dms/map/";
-    private static String databaseAndLogDirectory = "/home/bishakh/dms/";
+    private static String syncDirectory = "/home/alarm/dms/sync/";
+    private static String mapFileServerDirectory = "/home/alarm/dms/";
+    private static String databaseAndLogDirectory = "/home/alarm/dms/";
     private static String databaseName = "fileDB.txt";
 
     public Logger logger;
