@@ -231,6 +231,8 @@ public class FileManager {
                 enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
             }
 
+            // make entry in LOG
+            logger.write("FILE_PRESENT, " + fileID + ", " + file.getName());
         }
 
         for (String key : fileTableHashMap.keySet()) {
@@ -238,12 +240,11 @@ public class FileManager {
             String fileName = fileInfo.getFileName();
             List<Long> seq = fileInfo.getSequence();
             if(seq.get(1) != 0){
-            boolean check = new File(FILES_PATH + "/" + fileName).exists();
-            if(!check){
-                fileTableHashMap.remove(key);
-                logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
-
-            }
+                boolean check = new File(FILES_PATH + "/" + fileName).exists();
+                if(!check){
+                    fileTableHashMap.remove(key);
+                    logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
+                }
             }
         }
     }
