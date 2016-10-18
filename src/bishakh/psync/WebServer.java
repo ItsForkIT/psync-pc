@@ -4,7 +4,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 
@@ -19,18 +24,37 @@ public class WebServer extends NanoHTTPD {
 
     }
 
+
     @Override
     public Response serve(String uri, Method method,
                           Map<String, String> header,
                           Map<String, String> parameters,
                           Map<String, String> files) {
-        String path = controller.urlResolver(uri);
+        // get filePath and Mime <FilePath, Mime>
+        List<String> FileAndMime = new ArrayList<String>();
+        FileAndMime = controller.urlResolver(uri);
         File f;
+        String path = FileAndMime.get(0);
         logger.d("DEBUG", "WebServer: GET: " + path);
         if(!path.equals("")){
-            f = new File(path);
-            String mimeType =  "application/octet-stream";
-            return serveFile(uri, header, f, mimeType);
+            String mimeType =  FileAndMime.get(1);
+
+            if(!mimeType.equals("application/octet-stream")){
+
+                try {
+                    FileInputStream fileIS = new FileInputStream(path);
+                    Response res = new Response(Response.Status.OK, mimeType,fileIS, fileIS.getChannel().size());
+                    res.addHeader("Access-Control-Allow-Origin", "*");
+                    return res;
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                    return createResponse(Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, new ByteArrayInputStream("404".getBytes(StandardCharsets.UTF_8)), "404".length());
+                }
+            }
+            else {
+                f = new File(path);
+                return serveFile(uri, header, f, mimeType);
+            }
         }
         else {
             return createResponse(Response.Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT, new ByteArrayInputStream("404".getBytes(StandardCharsets.UTF_8)), "404".length());

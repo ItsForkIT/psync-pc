@@ -1,12 +1,11 @@
 package bishakh.psync;
 
 import com.google.gson.Gson;
+
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,8 +22,10 @@ public class Controller {
     Thread mcontrollerThread = new Thread(controllerThread);
     int maxRunningDownloads;
     Logger logger;
+    MapDataProcessor mapDataProcessor;
+    FilePriorityComparator filePriorityComparator;
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> remotePeerFileTableHashMap;
+    ConcurrentHashMap<String, ConcurrentHashMap<String, FileEntry>> remotePeerFileTableHashMap;
 
     /*
     missingFileTableHashMap Format :
@@ -32,15 +33,8 @@ public class Controller {
     | Peer Address | File ID | File Table for the file |
     ----------------------------------------------------
      */
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> missingFileTableHashMap;
+    ConcurrentHashMap<String, ConcurrentHashMap<String, FileEntry>> missingFileTableHashMap;
 
-    /*
-    priorityDownloadList Format :
-    ---------------------------------------
-    | Priority | File Table for the file |
-    ---------------------------------------
-     */
-    ConcurrentHashMap<String, FileTable> priorityDownloadList;
 
     /*
     fileTablePeerID Format :
@@ -48,7 +42,7 @@ public class Controller {
     | File Table for the file | Peer Id
     ---------------------------------------
      */
-    ConcurrentHashMap<FileTable, String> fileTablePeerID;
+    ConcurrentHashMap<FileEntry, String> fileTablePeerID;
 
 
     public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads, Logger LoggerObj) {
@@ -59,11 +53,16 @@ public class Controller {
         this.maxRunningDownloads = maxRunningDownloads;
         remotePeerFileTableHashMap = new ConcurrentHashMap<>();
         missingFileTableHashMap = new ConcurrentHashMap<>();
-        priorityDownloadList = new ConcurrentHashMap<>();
         fileTablePeerID = new ConcurrentHashMap<>();
         controllerThread = new ControllerThread(this);
         mcontrollerThread  = new Thread(controllerThread);
         this.logger = LoggerObj;
+        filePriorityComparator = new FilePriorityComparator(fileManager, logger);
+        try {
+            this.mapDataProcessor = new MapDataProcessor(fileManager.FILES_PATH, fileManager.MAP_DIR_PATH);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -80,23 +79,70 @@ public class Controller {
         }
     }
 
-    public String urlResolver(String  uri){
+    public List<String> urlResolver(String  uri){
+        List<String> FileAndMime = new ArrayList<String>();
+
         String parameter = uri.substring(1);
         logger.d("DEBUG", "Controller URL Request recv: " + parameter);
-        if(parameter.equals("list")){
-            return fileManager.DATABASE_PATH;
-        }
-        else {
-            if(parameter.substring(0, 7).equals("getFile")){
-                String fileID = parameter.substring(8);
-                logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
-                if(!discoverer.HPnodePresent()){
-                    return fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName();
-                }
-            }
 
-            return "";
+        if(parameter.equals("list")){
+            FileAndMime.add(0, fileManager.DATABASE_PATH);
+            FileAndMime.add(1, "application/octet-stream");
+            return FileAndMime;
         }
+
+        if(parameter.substring(0, 7).equals("getFile")){
+            String fileID = parameter.substring(8);
+            logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
+            FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName());
+            FileAndMime.add(1, "application/octet-stream");
+            return FileAndMime;
+        }
+
+        if(parameter.substring(0, 7).equals("getTile")){
+            String tileID = parameter.substring(8);
+            FileAndMime.add(0, fileManager.MAP_DIR_PATH + "/tiles/" + tileID);
+            FileAndMime.add(1, "application/octet-stream");
+            return FileAndMime;
+        }
+
+        if(parameter.substring(0, 11).equals("getMapAsset")){
+            String fileName = parameter.substring(12);
+            FileAndMime.add(0, fileManager.MAP_DIR_PATH + fileName);
+            FileAndMime.add(1, "text/html");
+            if(parameter.endsWith(".css")){
+                FileAndMime.set(1, "text/css");
+            }
+            if(parameter.endsWith(".html")){
+                FileAndMime.set(1, "text/html");
+            }
+            return FileAndMime;
+        }
+
+        if(parameter.substring(0, 6).equals("getGIS")){
+            // Example http://127.0.0.1:8080/getGIS/allLogs
+            String gisObjName = parameter.substring(7);
+            logger.d("GIS_FETCH ", gisObjName);
+            if(gisObjName.equals("allLogs.txt")) {
+                mapDataProcessor.generateAllTrails();
+                FileAndMime.add(0, fileManager.MAP_DIR_PATH + gisObjName);
+                FileAndMime.add(1, "text/plain");
+                logger.d("RETURN GIS ", gisObjName);
+                return FileAndMime;
+            }
+            if(gisObjName.equals("allGIS.txt")) {
+                mapDataProcessor.generateAllGIS();
+                FileAndMime.add(0, fileManager.MAP_DIR_PATH + gisObjName);
+                FileAndMime.add(1, "text/plain");
+                logger.d("RETURN GIS ", gisObjName);
+                return FileAndMime;
+            }
+        }
+
+        FileAndMime.add(0, "");
+        FileAndMime.add(1, "");
+        return FileAndMime;
+
     }
 
     /**
@@ -105,13 +151,12 @@ public class Controller {
      * @param peerAddress : the address of the current peer
      * @param remoteFiles : the fileTable of the current peer
      */
-    void peerFilesFetched(String peerAddress, ConcurrentHashMap<String, FileTable> remoteFiles) {
+    void peerFilesFetched(String peerAddress, ConcurrentHashMap<String, FileEntry> remoteFiles) {
         Gson gson = new Gson();
         logger.d("DEBUG: ", "Controller file fetch Response code : " + gson.toJson(remoteFiles).toString());
-        if(remotePeerFileTableHashMap.get(peerAddress) != null){
-            remotePeerFileTableHashMap.remove(peerAddress);
+        if(remotePeerFileTableHashMap != null) {
+            remotePeerFileTableHashMap.put(peerAddress, remoteFiles);
         }
-        remotePeerFileTableHashMap.put(peerAddress, remoteFiles);
     }
 
     /**
@@ -120,6 +165,7 @@ public class Controller {
     void findMissingFiles() {
         missingFileTableHashMap.clear();
         long endByte;
+        long remoteEndByte;
         /*
         Iterate over all peers
          */
@@ -131,19 +177,21 @@ public class Controller {
                 /*
                 Find whether the peer has any file which is missing in device
                  */
+                if (remotePeerFileTableHashMap.get(peers).get(files) != null){
                 endByte = 0;
                 boolean isMissing = true;
-                for(String myFiles : fileManager.fileTableHashMap.keySet()) {
-                    if(files.equals(myFiles) == true) { // check whether file is same as remote file
-                        logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
-                        logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
+                remoteEndByte = remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1);
+                for (String myFiles : fileManager.fileTableHashMap.keySet()) {
+                    if (files.equals(myFiles) == true) { // check whether file is same as remote file
+                        //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
+                        //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
                         if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) ==
                                 fileManager.fileTableHashMap.get(myFiles).getFileSize()) { // complete file available
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE COMPLETE");
                             break;
-                        }else {
+                        } else {
                             if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) <
                                     remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1)) {
                                 isMissing = true;
@@ -157,38 +205,44 @@ public class Controller {
                         }
                     }
                 }
-                if(isMissing) { // file is missing
+                if (isMissing) { // file is missing
                     //Log.d("DEBUG: ", "MISSING FILE TRUE");
-                    if(missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
-                        missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileTable>());
+
+                    // Mark missing only if remote peer has > 0 bit data
+                    if (remoteEndByte > 0) {
+                        // CHECK IF IT IS AN OLD GPS LOG
+                        if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).get(files).getFileName())) {
+                            if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
+                                missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
+                            }
+                            missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).get(files));
+                            // missing file sequence same as sequence of available file
+                            List<Long> seq = new ArrayList<>();
+                            seq.add((long) 0);
+                            seq.add(endByte);
+                            missingFileTableHashMap.get(peers).get(files).setSequence(seq);
+                        }
                     }
-                    missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).get(files));
-                    // missing file sequence same as sequence of available file
-                    List<Long> seq = new ArrayList<>();
-                    seq.add((long) 0);
-                    seq.add(endByte);
-                    missingFileTableHashMap.get(peers).get(files).setSequence(seq);
+
 
                     // Make file manager entry
-                    if(fileManager.fileTableHashMap.get(files) == null){
-                        fileManager.fileTableHashMap.put(files, missingFileTableHashMap.get(peers).get(files));
+                    if (fileManager.fileTableHashMap.get(files) == null) {
+                        fileManager.fileTableHashMap.put(files, remotePeerFileTableHashMap.get(peers).get(files));
                         fileManager.forceSetEndSequence(files, endByte);
                     }
 
                 }
             }
+            }
         }
 
-        // Put missing files in priority list (not sorted now)
-        priorityDownloadList.clear();
+        // Put missing files in fileTable->PeerID map
         fileTablePeerID.clear();
-        // arrange files to be downloaded according to priority
         for(String p : missingFileTableHashMap.keySet()) {
-            for(String fileID : missingFileTableHashMap.get(p).keySet()) {
-                int priority = missingFileTableHashMap.get(p).get(fileID).getPriority();
-                //String priorityPeerID = "" + priority + "###" + p; // keep a combination of file priority and peer id
-                priorityDownloadList.put(""+priority, missingFileTableHashMap.get(p).get(fileID));
-                fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
+            if(missingFileTableHashMap.get(p) != null) {
+                for (String fileID : missingFileTableHashMap.get(p).keySet()) {
+                    fileTablePeerID.put(missingFileTableHashMap.get(p).get(fileID), p);
+                }
             }
         }
     }
@@ -212,13 +266,20 @@ public class Controller {
     void manageOngoingDownloads(){
         for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
             FileTransporter.ResumeDownloadThread downloadRunnable = fileTransporter.ongoingDownloadThreads.get(t);
-            //Log.d("DEBUG: ", "Controller: PROGRESS " + downloadRunnable.getPresentByte());
+            logger.d("DEBUG: ", "Controller: DownloadPROGRESS " + downloadRunnable.getPresentByte());
             if(downloadRunnable.isRunning){
                 fileManager.setEndSequence(downloadRunnable.fileID, downloadRunnable.getPresentByte());
             }
             else {
                 fileManager.setEndSequence(downloadRunnable.fileID, downloadRunnable.getPresentByte());
+                /* Check and remove old gps log file from same node */
+                if(downloadRunnable.filesize == downloadRunnable.getPresentByte()){
+                    fileManager.removeOldGpsLogs(downloadRunnable.fileID);
+                }
+
                 fileTransporter.ongoingDownloadThreads.remove(t);
+                logger.d("DEBUG: ", "Controller: DownloadThreadRemove " + downloadRunnable.getPresentByte());
+
             }
         }
     }
@@ -226,70 +287,58 @@ public class Controller {
     void startDownloadingMissingFiles(){
         if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
 
+            /* With file priority */
 
-            // sort this list according to priority
-            Map<String, FileTable> priorityDownloadListSorted = new TreeMap<>(priorityDownloadList);
+            PriorityQueue<FileEntry> missingFileQueue = getMissingFileQueue();
 
-            // start download
-            for(String priority : priorityDownloadListSorted.keySet()) {
-                if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
-                    break;
-                }
+            while ((!missingFileQueue.isEmpty()) && (fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads)){
+                FileEntry fileToDownload = missingFileQueue.remove();
                 boolean ongoing = false;
-                for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()) {
-                    if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(priorityDownloadListSorted.get(priority).getFileID())){
+                for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
+                    logger.d("DEBUG: ", "MISSING FILE ONGOING CHECK" + fileToDownload.getFileID());
+                    //Log.d("DEBUG: ", "MISSING FILE ONGOING" + fileTransporter.ongoingDownloadThreads.get(t).fileID );
+                    if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(fileToDownload.getFileID())){
                         ongoing = true;
                         break;
                     }
                 }
                 if(!ongoing){
                     try {
-                        logger.d("DEBUG: ", "Controller MISSING FILE START DOWNLOAD" );
-                        //String peerID = priorityPeerID.substring(priorityPeerID.indexOf("###") + 3); // extract peer id
-                        String peerIP = fileTablePeerID.get(priorityDownloadListSorted.get(priority));
+                        logger.write("DEBUG " + "Controller MISSING FILE START DOWNLOAD " + fileToDownload.getFileName() + " "+ fileToDownload.getImportance());
+                        String peerIP = fileTablePeerID.get(fileToDownload);
                         String peerID = discoverer.peerList.get(peerIP).get(0);
-                        // we have files sorted according to priority ... use fileTablePeerID to get the peer id of the files
-                        fileTransporter.downloadFile(priorityDownloadListSorted.get(priority).getFileID(),
-                                priorityDownloadListSorted.get(priority).getFileName(),
-                                peerIP, peerID,
-                                priorityDownloadListSorted.get(priority).getSequence().get(1),
-                                -1, priorityDownloadListSorted.get(priority).getFileSize());
+                        fileTransporter.downloadFile(fileToDownload.getFileID(),
+                                fileToDownload.getFileName(),
+                                peerIP, peerID, fileToDownload.getSequence().get(1),
+                                -1, fileToDownload.getFileSize());
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
                 }
             }
-            /*
-            for(String p : missingFileTableHashMap.keySet()) {
-                if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
-                    break;
-                }
-                for(String fileID : missingFileTableHashMap.get(p).keySet()){
-                    if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
-                        break;
-                    }
-                    boolean ongoing = false;
-                    for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
-                        Log.d("DEBUG: ", "MISSING FILE ONGOING CHECK" + fileID);
-                        //Log.d("DEBUG: ", "MISSING FILE ONGOING" + fileTransporter.ongoingDownloadThreads.get(t).fileID );
-                        if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(fileID)){
-                            ongoing = true;
-                            break;
-                        }
-                    }
-                    if(!ongoing){
-                        try {
-                            Log.d("DEBUG: ", "Controller MISSING FILE START DOWNLOAD" );
 
-                            fileTransporter.downloadFile(fileID, missingFileTableHashMap.get(p).get(fileID).getFileName(),p, missingFileTableHashMap.get(p).get(fileID).getSequence().get(1), -1);
-                        } catch (MalformedURLException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }*/
+
+
+            /* end with file priority */
+
         }
     }
+
+
+
+    public PriorityQueue<FileEntry> getMissingFileQueue(){
+        PriorityQueue<FileEntry> missingFileQueue = new PriorityQueue<FileEntry>(maxRunningDownloads, filePriorityComparator);
+
+        for(String p : missingFileTableHashMap.keySet()) {
+
+            for(String fileID : missingFileTableHashMap.get(p).keySet()) {
+                missingFileQueue.add(missingFileTableHashMap.get(p).get(fileID));
+            }
+        }
+
+        return  missingFileQueue;
+    }
+
 
     /**
      * Thread to fetch the file list from all the available peers
