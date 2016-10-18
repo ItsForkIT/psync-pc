@@ -21,8 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FileManager {
 
-    ConcurrentHashMap<String, FileEntry> fileTableHashMap;
-    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileEntry>>(){}.getType();
+    public FileTable fileTable;
     Gson gson = new Gson();
     final String DATABASE_NAME;
     final String DATABASE_PATH;
@@ -36,8 +35,9 @@ public class FileManager {
 
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
-    public FileManager(String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
-        this.fileTableHashMap = new ConcurrentHashMap<>();
+    public FileManager(String peerID, String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
+        this.fileTable = new FileTable(peerID);
+        fileTable.fileMap = new ConcurrentHashMap<>();
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
         this.FILES_PATH = new File(syncDirectory);
@@ -105,7 +105,7 @@ public class FileManager {
     }
 
     public String getFileDBJson(){
-        return gson.toJson(fileTableHashMap);
+        return gson.toJson(fileTable);
     }
 
 
@@ -125,14 +125,14 @@ public class FileManager {
                           String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
         FileEntry newFileInfo = new FileEntry( fileID, fileName, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, importance);
-        fileTableHashMap.put( fileID, newFileInfo);
+        fileTable.fileMap.put( fileID, newFileInfo);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
     public void setEndSequence(String fileID, long endByte){
-        FileEntry fileTable = fileTableHashMap.get(fileID);
+        FileEntry fileEntry = fileTable.fileMap.get(fileID);
         if(fileTable != null){
-            List<Long> prevSeq = fileTable.getSequence();
+            List<Long> prevSeq = fileEntry.getSequence();
             List<Long> newSeq = new ArrayList<Long>();
             newSeq.add(0, prevSeq.get(0));
             if(endByte > prevSeq.get(1)) {
@@ -142,20 +142,20 @@ public class FileManager {
                 newSeq.add(1, prevSeq.get(1));
             }
 
-            fileTable.setSequence(newSeq);
+            fileEntry.setSequence(newSeq);
             logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
 
     public void forceSetEndSequence(String fileID, long endByte){
-        FileEntry fileTable = fileTableHashMap.get(fileID);
+        FileEntry fileEntry = fileTable.fileMap.get(fileID);
         if(fileTable != null){
             List<Long> newSeq = new ArrayList<Long>();
             newSeq.add(0, (long)0); // check this
 
             newSeq.add(1, endByte);
 
-            fileTable.setSequence(newSeq);
+            fileEntry.setSequence(newSeq);
             logger.d("DEBUG", "FileManager SET_END_SEQ: " + newSeq);
         }
     }
@@ -167,7 +167,7 @@ public class FileManager {
         try{
             File file = new File(DATABASE_PATH);
             FileWriter fileWriter = new FileWriter(file);
-            fileWriter.write(gson.toJson(fileTableHashMap));
+            fileWriter.write(gson.toJson(fileTable));
             fileWriter.flush();
             fileWriter.close();
 
@@ -187,7 +187,7 @@ public class FileManager {
             BufferedReader br = new BufferedReader(new FileReader(DATABASE_PATH));
 
             //convert the json string back to object
-            fileTableHashMap = (ConcurrentHashMap<String, FileEntry>)gson.fromJson(br, ConcurrentHashMapType);
+            fileTable = (FileTable)gson.fromJson(br, FileTable.class);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -205,7 +205,7 @@ public class FileManager {
         // Add file to database if not already present
         for(File file: files){
             String fileID = getFileIDFromPath(file);
-            if(fileTableHashMap.get(fileID) == null){
+            if(fileTable.fileMap.get(fileID) == null){
                 long fileSize = file.length();
                 List seq = new ArrayList();
                 seq.add(0, 0);
@@ -233,14 +233,14 @@ public class FileManager {
 
         }
 
-        for (String key : fileTableHashMap.keySet()) {
-            FileEntry fileInfo = fileTableHashMap.get(key);
+        for (String key : fileTable.fileMap.keySet()) {
+            FileEntry fileInfo = fileTable.fileMap.get(key);
             String fileName = fileInfo.getFileName();
             List<Long> seq = fileInfo.getSequence();
             if(seq.get(1) != 0){
             boolean check = new File(FILES_PATH + "/" + fileName).exists();
             if(!check){
-                fileTableHashMap.remove(key);
+                fileTable.fileMap.remove(key);
                 logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
 
             }
@@ -287,7 +287,7 @@ public class FileManager {
     public void removeOldGpsLogs(String fileID){
 
 
-        final String newLogName = fileTableHashMap.get(fileID).getFileName();
+        final String newLogName = fileTable.fileMap.get(fileID).getFileName();
 
         if(newLogName.startsWith("MapDisarm_Log")) {
             /* find all log files of same node*/
@@ -319,7 +319,7 @@ public class FileManager {
                     logger.write("REMOVING LOG" + file.getName());
                     String fileid = getFileIDFromPath(file);
                     file.delete();
-                    fileTableHashMap.remove(fileid);
+                    fileTable.fileMap.remove(fileid);
                 }
                 else {
                     logger.write("KEEPING LOG" + file.getName());
@@ -386,11 +386,11 @@ public class FileManager {
     public void updateCountOfTypesWithSpace(){
         countOfTypesWithSpace.clear();
 
-        for (String fileID : fileTableHashMap.keySet()) {
-            FileEntry fileTable = fileTableHashMap.get(fileID);
-            String fileName = fileTable.getFileName();
+        for (String fileID : fileTable.fileMap.keySet()) {
+            FileEntry fileEntry = fileTable.fileMap.get(fileID);
+            String fileName = fileEntry.getFileName();
             if((fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
-                    fileName.startsWith("TXT_") || fileName.startsWith("SMS_")) && fileTable.getSequence().get(1) > 0){
+                    fileName.startsWith("TXT_") || fileName.startsWith("SMS_")) && fileEntry.getSequence().get(1) > 0){
                 Set<String> typeSpaceSet = new HashSet<>();
                 String typesString = fileName.split("_")[2];
                 String[] typesArray = typesString.split("-");
@@ -423,12 +423,12 @@ public class FileManager {
             totalCountOfAllTypeSets = totalCountOfAllTypeSets + countOfTypesWithSpace.get(typeSet);
         }
 
-        for (String fileID : fileTableHashMap.keySet()) {
-            FileEntry fileTable = fileTableHashMap.get(fileID);
-            String fileName = fileTable.getFileName();
+        for (String fileID : fileTable.fileMap.keySet()) {
+            FileEntry fileEntry = fileTable.fileMap.get(fileID);
+            String fileName = fileEntry.getFileName();
             if(fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
                     fileName.startsWith("TXT_") || fileName.startsWith("SMS_")){
-            if(fileTable.getSequence().get(1) != 0){
+            if(fileEntry.getSequence().get(1) != 0){
                 // Calculate Rank if the file is at least partially received
 
                 String typesString = fileName.split("_")[2];
@@ -470,7 +470,7 @@ public class FileManager {
 
                     double importanceValue = informationOfFile * Math.pow(2.71828, ((double)(-1.0) * ageInHours));
                     logger.write("SET FILE IMPORTANCE " + fileName + " " + importanceValue);
-                    fileTableHashMap.get(fileID).setImportance(importanceValue);
+                    fileTable.fileMap.get(fileID).setImportance(importanceValue);
                 }
 
                 }
@@ -482,7 +482,15 @@ public class FileManager {
 }
 
 
+class FileTable implements java.io.Serializable{
+    public String peerID;
+    public ConcurrentHashMap<String, FileEntry> fileMap;
 
+    public FileTable(String peerId){
+        this.peerID = peerId;
+        this.fileMap = new ConcurrentHashMap<String, FileEntry>();
+    }
+}
 
 
 /**

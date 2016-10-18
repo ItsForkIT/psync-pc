@@ -217,9 +217,9 @@ public class FileTransporter {
                 // get the input stream
                 in = new BufferedInputStream(connection.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                ConcurrentHashMap fileTableHashMap;
-                fileTableHashMap = (ConcurrentHashMap<String, FileEntry>)gson.fromJson(br, ConcurrentHashMapType);
-                controller.peerFilesFetched(peerAddress, fileTableHashMap);
+                FileTable fileTable;
+                fileTable = (FileTable) gson.fromJson(br, FileTable.class);
+                controller.peerFilesFetched(peerAddress, fileTable);
                 //Log.d("DEBUG:FILE TRANSPORTER", "List Json: " + gson.toJson(fileTableHashMap).toString());
 
 
