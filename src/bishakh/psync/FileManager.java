@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class FileManager {
 
-    ConcurrentHashMap<String, FileTable> fileTableHashMap;
-    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileTable>>(){}.getType();
+    ConcurrentHashMap<String, FileEntry> fileTableHashMap;
+    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileEntry>>(){}.getType();
     Gson gson = new Gson();
     final String DATABASE_NAME;
     final String DATABASE_PATH;
@@ -123,14 +123,14 @@ public class FileManager {
      */
     private void enterFile(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
                           String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
-        FileTable newFileInfo = new FileTable( fileID, fileName, sequence, fileSize, priority, timestamp,
+        FileEntry newFileInfo = new FileEntry( fileID, fileName, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, importance);
         fileTableHashMap.put( fileID, newFileInfo);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
     public void setEndSequence(String fileID, long endByte){
-        FileTable fileTable = fileTableHashMap.get(fileID);
+        FileEntry fileTable = fileTableHashMap.get(fileID);
         if(fileTable != null){
             List<Long> prevSeq = fileTable.getSequence();
             List<Long> newSeq = new ArrayList<Long>();
@@ -148,7 +148,7 @@ public class FileManager {
     }
 
     public void forceSetEndSequence(String fileID, long endByte){
-        FileTable fileTable = fileTableHashMap.get(fileID);
+        FileEntry fileTable = fileTableHashMap.get(fileID);
         if(fileTable != null){
             List<Long> newSeq = new ArrayList<Long>();
             newSeq.add(0, (long)0); // check this
@@ -187,7 +187,7 @@ public class FileManager {
             BufferedReader br = new BufferedReader(new FileReader(DATABASE_PATH));
 
             //convert the json string back to object
-            fileTableHashMap = (ConcurrentHashMap<String, FileTable>)gson.fromJson(br, ConcurrentHashMapType);
+            fileTableHashMap = (ConcurrentHashMap<String, FileEntry>)gson.fromJson(br, ConcurrentHashMapType);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -234,7 +234,7 @@ public class FileManager {
         }
 
         for (String key : fileTableHashMap.keySet()) {
-            FileTable fileInfo = fileTableHashMap.get(key);
+            FileEntry fileInfo = fileTableHashMap.get(key);
             String fileName = fileInfo.getFileName();
             List<Long> seq = fileInfo.getSequence();
             if(seq.get(1) != 0){
@@ -387,7 +387,7 @@ public class FileManager {
         countOfTypesWithSpace.clear();
 
         for (String fileID : fileTableHashMap.keySet()) {
-            FileTable fileTable = fileTableHashMap.get(fileID);
+            FileEntry fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
             if((fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
                     fileName.startsWith("TXT_") || fileName.startsWith("SMS_")) && fileTable.getSequence().get(1) > 0){
@@ -424,7 +424,7 @@ public class FileManager {
         }
 
         for (String fileID : fileTableHashMap.keySet()) {
-            FileTable fileTable = fileTableHashMap.get(fileID);
+            FileEntry fileTable = fileTableHashMap.get(fileID);
             String fileName = fileTable.getFileName();
             if(fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
                     fileName.startsWith("TXT_") || fileName.startsWith("SMS_")){
@@ -488,7 +488,7 @@ public class FileManager {
 /**
  * Class to save file description
  */
-class FileTable implements java.io.Serializable{
+class FileEntry implements java.io.Serializable{
     private String fileID;
     private String fileName;
     private List<Long> sequence;
@@ -500,7 +500,7 @@ class FileTable implements java.io.Serializable{
     private boolean destinationReachedStatus;
     private double importance;
 
-    public FileTable(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
+    public FileEntry(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
                      String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
         this.fileID = fileID;
         this.fileName = fileName;

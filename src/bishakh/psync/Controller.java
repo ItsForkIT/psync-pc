@@ -25,7 +25,7 @@ public class Controller {
     MapDataProcessor mapDataProcessor;
     FilePriorityComparator filePriorityComparator;
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> remotePeerFileTableHashMap;
+    ConcurrentHashMap<String, ConcurrentHashMap<String, FileEntry>> remotePeerFileTableHashMap;
 
     /*
     missingFileTableHashMap Format :
@@ -33,7 +33,7 @@ public class Controller {
     | Peer Address | File ID | File Table for the file |
     ----------------------------------------------------
      */
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileTable>> missingFileTableHashMap;
+    ConcurrentHashMap<String, ConcurrentHashMap<String, FileEntry>> missingFileTableHashMap;
 
 
     /*
@@ -42,7 +42,7 @@ public class Controller {
     | File Table for the file | Peer Id
     ---------------------------------------
      */
-    ConcurrentHashMap<FileTable, String> fileTablePeerID;
+    ConcurrentHashMap<FileEntry, String> fileTablePeerID;
 
 
     public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads, Logger LoggerObj) {
@@ -151,7 +151,7 @@ public class Controller {
      * @param peerAddress : the address of the current peer
      * @param remoteFiles : the fileTable of the current peer
      */
-    void peerFilesFetched(String peerAddress, ConcurrentHashMap<String, FileTable> remoteFiles) {
+    void peerFilesFetched(String peerAddress, ConcurrentHashMap<String, FileEntry> remoteFiles) {
         Gson gson = new Gson();
         logger.d("DEBUG: ", "Controller file fetch Response code : " + gson.toJson(remoteFiles).toString());
         if(remotePeerFileTableHashMap != null) {
@@ -213,7 +213,7 @@ public class Controller {
                         // CHECK IF IT IS AN OLD GPS LOG
                         if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).get(files).getFileName())) {
                             if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
-                                missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileTable>());
+                                missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
                             }
                             missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).get(files));
                             // missing file sequence same as sequence of available file
@@ -289,10 +289,10 @@ public class Controller {
 
             /* With file priority */
 
-            PriorityQueue<FileTable> missingFileQueue = getMissingFileQueue();
+            PriorityQueue<FileEntry> missingFileQueue = getMissingFileQueue();
 
             while ((!missingFileQueue.isEmpty()) && (fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads)){
-                FileTable fileToDownload = missingFileQueue.remove();
+                FileEntry fileToDownload = missingFileQueue.remove();
                 boolean ongoing = false;
                 for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
                     logger.d("DEBUG: ", "MISSING FILE ONGOING CHECK" + fileToDownload.getFileID());
@@ -320,14 +320,14 @@ public class Controller {
 
 
             /* end with file priority */
-            
+
         }
     }
 
 
 
-    public PriorityQueue<FileTable> getMissingFileQueue(){
-        PriorityQueue<FileTable> missingFileQueue = new PriorityQueue<FileTable>(maxRunningDownloads, filePriorityComparator);
+    public PriorityQueue<FileEntry> getMissingFileQueue(){
+        PriorityQueue<FileEntry> missingFileQueue = new PriorityQueue<FileEntry>(maxRunningDownloads, filePriorityComparator);
 
         for(String p : missingFileTableHashMap.keySet()) {
 

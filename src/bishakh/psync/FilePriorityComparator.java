@@ -6,7 +6,7 @@ import java.util.HashMap;
 /**
  * Created by bishakh on 6/10/16.
  */
-public class FilePriorityComparator implements Comparator<FileTable>
+public class FilePriorityComparator implements Comparator<FileEntry>
 {
     FileManager fileManager;
     Logger logger;
@@ -16,7 +16,7 @@ public class FilePriorityComparator implements Comparator<FileTable>
     }
 
     @Override
-    public int compare(FileTable x, FileTable y)
+    public int compare(FileEntry x, FileEntry y)
     {
         if (x.getImportance() > y.getImportance())
         {

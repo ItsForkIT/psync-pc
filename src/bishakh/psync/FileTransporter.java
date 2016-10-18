@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileTransporter {
     Gson gson = new Gson();
     public ConcurrentHashMap<Thread, ResumeDownloadThread> ongoingDownloadThreads = new ConcurrentHashMap<Thread, ResumeDownloadThread>();
-    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileTable>>(){}.getType();
+    Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileEntry>>(){}.getType();
     String syncDirectory;
     Logger logger;
 
@@ -218,7 +218,7 @@ public class FileTransporter {
                 in = new BufferedInputStream(connection.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
                 ConcurrentHashMap fileTableHashMap;
-                fileTableHashMap = (ConcurrentHashMap<String, FileTable>)gson.fromJson(br, ConcurrentHashMapType);
+                fileTableHashMap = (ConcurrentHashMap<String, FileEntry>)gson.fromJson(br, ConcurrentHashMapType);
                 controller.peerFilesFetched(peerAddress, fileTableHashMap);
                 //Log.d("DEBUG:FILE TRANSPORTER", "List Json: " + gson.toJson(fileTableHashMap).toString());
 
