@@ -320,44 +320,7 @@ public class Controller {
 
 
             /* end with file priority */
-
-
-
-
-
-
-            /* ------------ without file priority ----------------
-            for(String p : missingFileTableHashMap.keySet()) {
-                if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
-                    break;
-                }
-                for(String fileID : missingFileTableHashMap.get(p).keySet()){
-                    if(fileTransporter.ongoingDownloadThreads.size() >= maxRunningDownloads){
-                        break;
-                    }
-                    boolean ongoing = false;
-                    for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
-                        logger.d("DEBUG: ", "MISSING FILE ONGOING CHECK" + fileID);
-                        //Log.d("DEBUG: ", "MISSING FILE ONGOING" + fileTransporter.ongoingDownloadThreads.get(t).fileID );
-                        if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(fileID)){
-                            ongoing = true;
-                            break;
-                        }
-                    }
-                    if(!ongoing){
-                        try {
-                            logger.d("DEBUG: ", "Controller MISSING FILE START DOWNLOAD" );
-                            String peerID = discoverer.peerList.get(p).get(0);
-                            fileTransporter.downloadFile(fileID,
-                                                         missingFileTableHashMap.get(p).get(fileID).getFileName(),
-                                                         p, peerID, missingFileTableHashMap.get(p).get(fileID).getSequence().get(1),
-                                                         -1, missingFileTableHashMap.get(p).get(fileID).getFileSize());
-                        } catch (MalformedURLException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }  ---------------end without file priority ------------- */
+            
         }
     }
 
