@@ -185,20 +185,21 @@ public class Controller {
                         //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
                         //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
-                        if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) ==
-                                fileManager.fileTable.fileMap.get(files).getFileSize()) { // complete file available
+                        if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
                             isMissing = false;
-                            logger.d("DEBUG: ", "MISSING FILE COMPLETE");
+                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
+                            fileManager.fileTable.fileMap.get(files).setDestinationReachedStatus(true);
                         }
                         else if (fileManager.fileTable.fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION");
                         }
-                        else if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                        else if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) ==
+                                fileManager.fileTable.fileMap.get(files).getFileSize()) { // complete file available
                             isMissing = false;
-                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
-                            fileManager.fileTable.fileMap.get(files).setDestinationReachedStatus(true);
-                        } else {
+                            logger.d("DEBUG: ", "MISSING FILE COMPLETE");
+                        }
+                        else {
                             if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) <
                                     remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1)) {
                                 isMissing = true;
