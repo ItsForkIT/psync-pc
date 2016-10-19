@@ -225,8 +225,12 @@ public class FileManager {
                 logger.d("DEBUG", ttl);
                 String destination = "DB";
                 double imp = -1;
+
                 if(file.getName().startsWith("MapDisarm_Log_")){
                     imp = 99999999999999.99;
+                }
+                else {
+                    destination = file.getName().split("_")[4];
                 }
                 /*if(file.getName().startsWith("IMG_")){
                     imp = 0;
@@ -288,6 +292,7 @@ public class FileManager {
 
     public void checkDestinationReachStatus(String fileID){
         FileEntry fileEntry = fileTable.fileMap.get(fileID);
+        logger.d("DEBUG: ", "CheckingDestinationReachStatus " + fileEntry.getDestination() + " vs " + PEER_ID);
         if(fileEntry.getDestination().equals(PEER_ID) && fileEntry.getSequence().get(1) == fileEntry.getFileSize()){
             logger.d("DEBUG: ", "DESTINATION REACHED - " + fileEntry.getFileName());
             fileEntry.setDestinationReachedStatus(true);
