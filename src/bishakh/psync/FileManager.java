@@ -27,6 +27,7 @@ public class FileManager {
     final String DATABASE_PATH;
     final String MAP_DIR_PATH;
     final File FILES_PATH;
+    final String PEER_ID;
     Logger logger;
     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
@@ -36,6 +37,7 @@ public class FileManager {
     private FileManagerThread fileManagerThread = new FileManagerThread();
 
     public FileManager(String peerID, String databaseName, String databaseDirectory, String syncDirectory, String mapDir, Logger loggerObj){
+        this.PEER_ID = peerID;
         this.fileTable = new FileTable(peerID);
         fileTable.fileMap = new ConcurrentHashMap<>();
         this.DATABASE_NAME = databaseName;
@@ -188,6 +190,7 @@ public class FileManager {
 
             //convert the json string back to object
             fileTable = (FileTable)gson.fromJson(br, FileTable.class);
+            fileTable.peerID = this.PEER_ID;
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -281,6 +284,14 @@ public class FileManager {
         }
 
         return hexString.toString();
+    }
+
+    public void checkDestinationReachStatus(String fileID){
+        FileEntry fileEntry = fileTable.fileMap.get(fileID);
+        if(fileEntry.getDestination().equals(PEER_ID) && fileEntry.getSequence().get(1) == fileEntry.getFileSize()){
+            logger.d("DEBUG: ", "DESTINATION REACHED - " + fileEntry.getFileName());
+            fileEntry.setDestinationReachedStatus(true);
+        }
     }
 
 

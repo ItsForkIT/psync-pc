@@ -191,7 +191,19 @@ public class Controller {
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE COMPLETE");
                             break;
-                        } else {
+                        }
+                        if (fileManager.fileTable.fileMap.get(myFiles).getDestinationReachedStatus()) { // file already reached dest
+                            isMissing = false;
+                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION");
+                            break;
+                        }
+                        if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                            isMissing = false;
+                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
+                            fileManager.fileTable.fileMap.get(myFiles).setDestinationReachedStatus(true);
+                            break;
+                        }
+                        else {
                             if (fileManager.fileTable.fileMap.get(myFiles).getSequence().get(1) <
                                     remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1)) {
                                 isMissing = true;
@@ -272,6 +284,7 @@ public class Controller {
             }
             else {
                 fileManager.setEndSequence(downloadRunnable.fileID, downloadRunnable.getPresentByte());
+                fileManager.checkDestinationReachStatus(downloadRunnable.fileID);
                 /* Check and remove old gps log file from same node */
                 if(downloadRunnable.filesize == downloadRunnable.getPresentByte()){
                     fileManager.removeOldGpsLogs(downloadRunnable.fileID);
