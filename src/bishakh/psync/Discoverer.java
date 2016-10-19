@@ -223,19 +223,8 @@ public class Discoverer {
                          */
                     }
 
-                    byte[] data = datagramPacket.getData();
-                    InputStreamReader inputStreamReader = new InputStreamReader(new ByteArrayInputStream(data), Charset.forName("UTF-8"));
-
-                    final StringBuilder stringBuilder = new StringBuilder();
-                    try {
-                        for (int value; (value = inputStreamReader.read()) != -1; ) {
-                            stringBuilder.append((char) value);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                     if(willUpdatePeer) {
-                        String peerID = new String(data, 0, datagramPacket.getLength());
+                        String peerID = new String(datagramPacket.getData(), 0, datagramPacket.getLength());
                         updatePeers(datagramPacket.getAddress().getHostAddress(), peerID);
                     }
                 } // end of while
