@@ -25,7 +25,7 @@ public class Controller {
     MapDataProcessor mapDataProcessor;
     FilePriorityComparator filePriorityComparator;
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, FileEntry>> remotePeerFileTableHashMap;
+    ConcurrentHashMap<String, FileTable> remotePeerFileTableHashMap;
 
     /*
     missingFileTableHashMap Format :
@@ -94,7 +94,7 @@ public class Controller {
         if(parameter.substring(0, 7).equals("getFile")){
             String fileID = parameter.substring(8);
             logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
-            FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTableHashMap.get(fileID).getFileName());
+            FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTable.fileMap.get(fileID).getFileName());
             FileAndMime.add(1, "application/octet-stream");
             return FileAndMime;
         }
@@ -149,13 +149,13 @@ public class Controller {
      * Collect the remote file info from the available peers
      * Called when ListFetcher thread has received the file list from peer
      * @param peerAddress : the address of the current peer
-     * @param remoteFiles : the fileTable of the current peer
+     * @param remoteFileTable : the fileTable of the current peer
      */
-    void peerFilesFetched(String peerAddress, ConcurrentHashMap<String, FileEntry> remoteFiles) {
+    void peerFilesFetched(String peerAddress, FileTable remoteFileTable) {
         Gson gson = new Gson();
-        logger.d("DEBUG: ", "Controller file fetch Response code : " + gson.toJson(remoteFiles).toString());
+        logger.d("DEBUG: ", "Controller file fetch Response code : " + gson.toJson(remoteFileTable).toString());
         if(remotePeerFileTableHashMap != null) {
-            remotePeerFileTableHashMap.put(peerAddress, remoteFiles);
+            remotePeerFileTableHashMap.put(peerAddress, remoteFileTable);
         }
     }
 
@@ -173,61 +173,69 @@ public class Controller {
             /*
             Iterate over all files
              */
-            for( String files : remotePeerFileTableHashMap.get(peers).keySet()) {
+            for( String files : remotePeerFileTableHashMap.get(peers).fileMap.keySet()) {
                 /*
                 Find whether the peer has any file which is missing in device
                  */
-                if (remotePeerFileTableHashMap.get(peers).get(files) != null){
+                if (remotePeerFileTableHashMap.get(peers).fileMap.get(files) != null){
                 endByte = 0;
                 boolean isMissing = true;
-                remoteEndByte = remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1);
-                for (String myFiles : fileManager.fileTableHashMap.keySet()) {
-                    if (files.equals(myFiles) == true) { // check whether file is same as remote file
+                remoteEndByte = remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1);
+                if(fileManager.fileTable.fileMap.get(files) != null) {// check whether file in local file table
                         //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
                         //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
-                        if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) ==
-                                fileManager.fileTableHashMap.get(myFiles).getFileSize()) { // complete file available
+                        if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                            isMissing = false;
+                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
+                            fileManager.fileTable.fileMap.get(files).setDestinationReachedStatus(true);
+                        }
+                        else if (fileManager.fileTable.fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                            isMissing = false;
+                            logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION");
+                        }
+                        else if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) ==
+                                fileManager.fileTable.fileMap.get(files).getFileSize()) { // complete file available
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE COMPLETE");
-                            break;
-                        } else {
-                            if (fileManager.fileTableHashMap.get(myFiles).getSequence().get(1) <
-                                    remotePeerFileTableHashMap.get(peers).get(files).getSequence().get(1)) {
+                        }
+                        else {
+                            if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) <
+                                    remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1)) {
                                 isMissing = true;
                                 logger.d("DEBUG: ", "MISSING FILE INCOMPLETE");
-                                endByte = fileManager.fileTableHashMap.get(myFiles).getSequence().get(1);
-                                break;
+                                endByte = fileManager.fileTable.fileMap.get(files).getSequence().get(1);
                             } else {
                                 isMissing = false;
-                                break;
                             }
                         }
                     }
-                }
                 if (isMissing) { // file is missing
                     //Log.d("DEBUG: ", "MISSING FILE TRUE");
 
                     // Mark missing only if remote peer has > 0 bit data
                     if (remoteEndByte > 0) {
                         // CHECK IF IT IS AN OLD GPS LOG
-                        if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).get(files).getFileName())) {
-                            if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
-                                missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
+                        if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).fileMap.get(files).getFileName())) {
+                            // check if already file has reached dest
+                            if(!remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()){
+                                if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
+                                    missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
+                                }
+                                missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).fileMap.get(files));
+                                // missing file sequence same as sequence of available file
+                                List<Long> seq = new ArrayList<>();
+                                seq.add((long) 0);
+                                seq.add(endByte);
+                                missingFileTableHashMap.get(peers).get(files).setSequence(seq);
                             }
-                            missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).get(files));
-                            // missing file sequence same as sequence of available file
-                            List<Long> seq = new ArrayList<>();
-                            seq.add((long) 0);
-                            seq.add(endByte);
-                            missingFileTableHashMap.get(peers).get(files).setSequence(seq);
                         }
                     }
 
 
                     // Make file manager entry
-                    if (fileManager.fileTableHashMap.get(files) == null) {
-                        fileManager.fileTableHashMap.put(files, remotePeerFileTableHashMap.get(peers).get(files));
+                    if (fileManager.fileTable.fileMap.get(files) == null) {
+                        fileManager.fileTable.fileMap.put(files, remotePeerFileTableHashMap.get(peers).fileMap.get(files));
                         fileManager.forceSetEndSequence(files, endByte);
                     }
 
@@ -272,6 +280,7 @@ public class Controller {
             }
             else {
                 fileManager.setEndSequence(downloadRunnable.fileID, downloadRunnable.getPresentByte());
+                fileManager.checkDestinationReachStatus(downloadRunnable.fileID);
                 /* Check and remove old gps log file from same node */
                 if(downloadRunnable.filesize == downloadRunnable.getPresentByte()){
                     fileManager.removeOldGpsLogs(downloadRunnable.fileID);
