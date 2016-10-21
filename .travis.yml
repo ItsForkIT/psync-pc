@@ -1,0 +1,6 @@
+language: java
+install: true
+script:
+ - mvn clean
+ - mvn compile
+ - mvn package
