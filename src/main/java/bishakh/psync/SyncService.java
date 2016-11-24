@@ -26,7 +26,7 @@ public class SyncService {
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, false);
         webServer = new WebServer(8080, controller, logger);
     }
 

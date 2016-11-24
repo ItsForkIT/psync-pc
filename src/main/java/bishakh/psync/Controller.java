@@ -45,7 +45,7 @@ public class Controller {
     ConcurrentHashMap<FileEntry, String> fileTablePeerID;
 
 
-    public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads, Logger LoggerObj) {
+    public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads, Logger LoggerObj, boolean randomizePriority) {
         this.discoverer = discoverer;
         this.fileManager = fileManager;
         this.syncInterval = syncInterval;
@@ -57,7 +57,7 @@ public class Controller {
         controllerThread = new ControllerThread(this);
         mcontrollerThread  = new Thread(controllerThread);
         this.logger = LoggerObj;
-        filePriorityComparator = new FilePriorityComparator(fileManager, logger);
+        filePriorityComparator = new FilePriorityComparator(fileManager, logger, randomizePriority);
         try {
             this.mapDataProcessor = new MapDataProcessor(fileManager.FILES_PATH, fileManager.MAP_DIR_PATH);
         } catch (IOException e) {

@@ -49,3 +49,4 @@ fabric.properties
 
 # Maven target folder
 target
+classes
