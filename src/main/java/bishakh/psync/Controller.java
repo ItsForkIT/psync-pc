@@ -357,6 +357,7 @@ public class Controller {
         boolean exit = true;
         boolean isRunning = false;
         Controller controller;
+        int countMissingFileFetcher = 1;
 
         public ControllerThread(Controller controller) {
             this.controller = controller;
@@ -373,12 +374,25 @@ public class Controller {
                 For every peer available fetch file list from them
                 After that update remotePeerFileTableHashMap
                  */
+                logger.d("DEBUG: ", "MISSING FILE CONTROL: " + countMissingFileFetcher);
                 for(String s : discoverer.peerList.keySet()) {
-                    try {
-                        new Thread(fileTransporter.new ListFetcher(controller, new URL("http://"+s+":8080/list"), s)).start();
-                    } catch (MalformedURLException e) {
-                        e.printStackTrace();
+                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%4 != 0){
+                        logger.d("DEBUG: ", "Controller skip fetching missing files for " + s);
                     }
+                    else{
+                        try {
+                            new Thread(fileTransporter.new ListFetcher(controller, new URL("http://"+s+":8080/list"), s)).start();
+                        } catch (MalformedURLException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+                if(countMissingFileFetcher%4 != 0){
+                    countMissingFileFetcher+=1;
+                }
+                else {
+                    countMissingFileFetcher = 1;
                 }
 
                 /*
