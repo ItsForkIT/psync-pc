@@ -128,6 +128,7 @@ public class FileManager {
         FileEntry newFileInfo = new FileEntry( fileID, fileName, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, importance);
         fileTable.fileMap.put( fileID, newFileInfo);
+        checkDestinationReachStatus(fileID);
         logger.d("DEBUG", "FileManager Add to DB: " + fileName);
     }
 
