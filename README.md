@@ -1,4 +1,4 @@
-PSync - A peer to peer sync tool for challenged networks
+pSync - A peer to peer sync tool for challenged networks
 =========================================================
 
 ![Travis Build](https://travis-ci.org/ghoshbishakh/psync-pc.svg?branch=master)
@@ -30,3 +30,6 @@ clearly outperforms BitTorrent Sync in delivering even
 30%
 more
 priority  packets  in  certain  test  cases.
+
+
+# [Download JAR](https://github.com/ghoshbishakh/psync-pc/raw/master/distributables/psync-pc-jar-with-dependencies.jar)
