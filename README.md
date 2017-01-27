@@ -1,7 +1,7 @@
 pSync - A peer to peer sync tool for challenged networks
 =========================================================
 
-![Travis Build](https://travis-ci.org/ghoshbishakh/psync-pc.svg?branch=master)
+[![Build Status](https://travis-ci.org/ItsForkIT/psync-pc.svg?branch=master)](https://travis-ci.org/ItsForkIT/psync-pc)
 
 Seamless  data  synchronization  among  peer  entities
 is  a  problem  for  any  challenged  network  scenarios  where  in-
