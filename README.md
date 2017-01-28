@@ -60,4 +60,4 @@ month={Jan},}
 ## AUTHORS
 
 1. Arka Prava Basu [arkaprava94@gmail.com](mailto:arkaprava94@gmail.com)
-2. Bishakh Chandra Ghosh [ghoshbishakh@gmail.com](mailto:arkaprava94@gmail.com)
+2. Bishakh Chandra Ghosh [ghoshbishakh@gmail.com](mailto:ghoshbishakh@gmail.com)
