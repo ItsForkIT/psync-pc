@@ -56,3 +56,8 @@ keywords={delay tolerant networks;peer-to-peer computing;protocols;synchronisati
 doi={10.1109/COMSNETS.2016.7439949},
 month={Jan},}
 ```
+
+## AUTHORS
+
+1. Arka Prava Basu [arkaprava94@gmail.com](mailto:arkaprava94@gmail.com)
+2. Bishakh Chandra Ghosh [ghoshbishakh@gmail.com](mailto:arkaprava94@gmail.com)
