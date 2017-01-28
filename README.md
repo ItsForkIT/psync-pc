@@ -33,3 +33,15 @@ priority  packets  in  certain  test  cases.
 
 
 # [Download JAR](https://github.com/ghoshbishakh/psync-pc/raw/master/distributables/psync-pc-jar-with-dependencies.jar)
+
+## License
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+
+## For any research work using this tool please cite the following:
+
+1. [On design and implementation of a scalable and reliable Sync system for delay tolerant challenged networks](http://ieeexplore.ieee.org/abstract/document/7439949/)
+
