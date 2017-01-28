@@ -45,3 +45,14 @@ http://www.apache.org/licenses/LICENSE-2.0
 
 1. [On design and implementation of a scalable and reliable Sync system for delay tolerant challenged networks](http://ieeexplore.ieee.org/abstract/document/7439949/)
 
+```
+@INPROCEEDINGS{7439949,
+author={P. S. Paul and B. C. Ghosh and K. De and S. Saha and S. Nandi and S. Saha and I. Bhattacharya and S. Chakraborty},
+booktitle={2016 8th International Conference on Communication Systems and Networks (COMSNETS)},
+title={On design and implementation of a scalable and reliable Sync system for delay tolerant challenged networks},
+year={2016},
+pages={1-8},
+keywords={delay tolerant networks;peer-to-peer computing;protocols;synchronisation;telecommunication channels;application layer file synchronization protocols;bittorrent sync;bundle protocol specifications;communication channel;delay tolerant challenged networks;information dropbox;peer-to-peer file synchronization protocol;seamless data exchange;seamless data synchronization;Androids;Humanoid robots;Peer-to-peer computing;Portable computers;Ports (Computers);Protocols;Synchronization;DTN;challenged networks;peer-to-peer;sync},
+doi={10.1109/COMSNETS.2016.7439949},
+month={Jan},}
+```
