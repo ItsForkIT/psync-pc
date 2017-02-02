@@ -227,7 +227,11 @@ public class FileManager {
                 String destination = "DB";
                 double imp = -1;
 
-                if(file.getName().startsWith("MapDisarm_Log_")){
+                if(file.getName().startsWith("GIS_")){
+                    imp = 9999999999999.99;
+                }
+
+                if(file.getName().startsWith("MapDisarm_Log_")) {
                     imp = 99999999999999.99;
                 }
                 else {
