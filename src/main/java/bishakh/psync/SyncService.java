@@ -4,7 +4,7 @@ import java.io.IOException;
 public class SyncService {
 
     private static final String BROADCAST_IP = "192.168.43.255";
-    private static final String PEER_ID = "defaultMcs";
+    private static String PEER_ID = "defaultMcs";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
@@ -31,6 +31,19 @@ public class SyncService {
     }
 
 
+    public SyncService(String inputPeerId, String baseDirectory) {
+        syncDirectory = baseDirectory + "dms/sync/";
+        mapFileServerDirectory = baseDirectory + "dms/";
+        databaseAndLogDirectory = baseDirectory + "dms/";
+        PEER_ID = inputPeerId;
+
+        logger = new Logger(databaseAndLogDirectory, PEER_ID);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, false);
+        webServer = new WebServer(8080, controller, logger);
+    }
 
 
     public  void start(){
@@ -52,7 +65,11 @@ public class SyncService {
     }
 
     public static void main(String[] args) {
-        SyncService s = new SyncService();
+        System.out.println(args.length);
+        if(args.length < 2){
+            SyncService s = new SyncService();
+        }
+        SyncService s = new SyncService(args[0], args[1]);
         s.start();
     }
 
