@@ -29,6 +29,7 @@ public class Discoverer {
     final ListenThread listenThread;
     final PeerExpiryThread peerExpiryThread;
 
+    // peerList format PEER_IP : [PEER_ID, timeAfterLastBroadcast]
     public volatile ConcurrentHashMap<String, ArrayList<String>> peerList;
 
     public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj) {
@@ -113,14 +114,29 @@ public class Discoverer {
     }
 
     public boolean HPnodePresent(){
-        boolean present = false;
-        for(String peerID : peerList.keySet()){
-            if(peerList.get(peerID).get(0).contains("DB")){
-                present = true;
-                break;
-            }
+        boolean HPpresent = false;
+
+        boolean defaultMCSPresent = false;
+        boolean DBPresent = false;
+        boolean mulePresent = false;
+
+
+        if(this.PEER_ID.startsWith("DB")){
+            // Check if node of higher priority than DB present
+            return (mulePresent || defaultMCSPresent);
         }
-        return present;
+
+        if(this.PEER_ID.startsWith("mule")){
+            // Check if node of higher priority than DB present
+            return defaultMCSPresent;
+        }
+        if(this.PEER_ID.startsWith("offlineMcs")){
+            // Highest priority
+            return false;
+        }
+
+        // For normal node:
+        return (defaultMCSPresent || DBPresent || mulePresent);
     }
 
 

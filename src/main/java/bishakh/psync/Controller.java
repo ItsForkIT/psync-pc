@@ -294,6 +294,11 @@ public class Controller {
     }
 
     void startDownloadingMissingFiles(){
+
+        if(discoverer.HPnodePresent()){
+            logger.d("DEBUG: ", "High priority node detected.. Syncing Paused");
+            return;
+        }
         if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
 
             /* With file priority */
