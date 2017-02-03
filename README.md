@@ -34,6 +34,18 @@ priority  packets  in  certain  test  cases.
 
 # [Download JAR](https://github.com/ghoshbishakh/psync-pc/raw/master/distributables/psync-pc-jar-with-dependencies.jar)
 
+
+# Instructions
+
+1. Create a working folder.
+
+2. Add a subfolder named 'sync' which will contain all files that will be synced.
+
+3. Run the jar:
+    ```
+    java -jar psync-pc-jar-with-dependencies.jar <PEER_ID> <ABSOLUTE_PATH_TO_WORKING_FOLDER>
+    ```
+
 ## License
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at
