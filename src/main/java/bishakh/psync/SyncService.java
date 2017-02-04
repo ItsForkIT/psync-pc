@@ -68,9 +68,12 @@ public class SyncService {
         System.out.println(args.length);
         if(args.length < 2){
             SyncService s = new SyncService();
+            s.start();
         }
-        SyncService s = new SyncService(args[0], args[1]);
-        s.start();
+        else {
+            SyncService s = new SyncService(args[0], args[1]);
+            s.start();
+        }
     }
 
 }
