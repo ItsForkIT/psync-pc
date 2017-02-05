@@ -94,7 +94,7 @@ public class Controller {
         if(parameter.substring(0, 7).equals("getFile")){
             String fileID = parameter.substring(8);
             logger.d("DEBUG", "Controller URL Request recv: FILEID: " + fileID);
-            FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTable.fileMap.get(fileID).getFileName());
+            FileAndMime.add(0, fileManager.FILES_PATH + "/" + fileManager.fileTable.fileMap.get(fileID).getFilePath());
             FileAndMime.add(1, "application/octet-stream");
             return FileAndMime;
         }
@@ -187,6 +187,7 @@ public class Controller {
 
                         if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
                             isMissing = false;
+                            logger.d("DEBUG-------------------------->\n", "" + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus() + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getFilePath());
                             logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
                             fileManager.fileTable.fileMap.get(files).setDestinationReachedStatus(true);
                         }
@@ -322,7 +323,7 @@ public class Controller {
                         String peerIP = fileTablePeerID.get(fileToDownload);
                         String peerID = discoverer.peerList.get(peerIP).get(0);
                         fileTransporter.downloadFile(fileToDownload.getFileID(),
-                                fileToDownload.getFileName(),
+                                fileToDownload.getFileName(), fileToDownload.getFilePath(),
                                 peerIP, peerID, fileToDownload.getSequence().get(1),
                                 -1, fileToDownload.getFileSize());
                     } catch (MalformedURLException e) {
