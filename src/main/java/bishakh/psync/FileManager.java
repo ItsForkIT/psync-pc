@@ -81,7 +81,8 @@ public class FileManager {
                 this.isRunning = true;
                 while(!this.exit) {
                     logger.d("DEBUG", "FileManager Scanning..");
-                    updateFromFolder();
+                    updateFilesFromSubfolders(FILES_PATH, FILES_PATH);
+                    removeDeletedFiles();
                     writeDB();
                     if(count > 4){
                         updateImportanceOfFilesAndTiles();
@@ -123,9 +124,9 @@ public class FileManager {
      * @param destination
      * @param destinationReachedStatus
      */
-    private void enterFile(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
+    private void enterFile(String fileID, String fileName, String filePath, List<Long> sequence, double fileSize, int priority,
                           String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
-        FileEntry newFileInfo = new FileEntry( fileID, fileName, sequence, fileSize, priority, timestamp,
+        FileEntry newFileInfo = new FileEntry( fileID, fileName, filePath, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, importance);
         fileTable.fileMap.put( fileID, newFileInfo);
         checkDestinationReachStatus(fileID);
@@ -201,80 +202,86 @@ public class FileManager {
     /**
      * Traverse the folder and add / remove files
      */
-    public void updateFromFolder(){
-        // get all files in sync folder
-        ArrayList<File> files = findFiles(FILES_PATH);
-        //Log.d("DEBUG", "FileManaager Files in sync: " + files.toString());
 
-        // Add file to database if not already present
-        for(File file: files){
-            String fileID = getFileIDFromPath(file);
-            if(fileTable.fileMap.get(fileID) == null){
-                long fileSize = file.length();
+    private void updateFilesFromSubfolders(File base_path, File folder_path ) {
+//        logger.d("DEBUG: ", "UPDATING FILES FROM SYNC DIRECTORY TREE");
+        if (folder_path.isDirectory()) {
+//            Folder Detected
+            String[] subFileFolders = folder_path.list();
+            for (String filename : subFileFolders) {
+                updateFilesFromSubfolders(base_path, new File(folder_path, filename));
+            }
+        } else {
+//            File Detected
+            File file_path = folder_path;
+            String relative_path = new File(base_path.getAbsolutePath()).toURI().relativize(new File(file_path.getAbsolutePath()).toURI()).getPath();
+//            logger.d("DEBUG: ---------------------->", relative_path + " " + file_path.getName());
+
+//            ENTER INTO FILETABLE
+            String fileID = getFileIDFromPath(file_path);
+            if (fileTable.fileMap.get(fileID) == null || fileTable.fileMap.get(fileID).getSequence().get(1) == 0) {
+                long fileSize = file_path.length();
                 List seq = new ArrayList();
                 seq.add(0, 0);
                 seq.add(1, fileSize);
                 String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
                 String ttl;
                 try {
-                    ttl = file.getName().split("_")[1];
+                    ttl = file_path.getName().split("_")[1];
                     int i = Integer.parseInt(ttl);
-                }
-                catch(Exception e){
+                } catch (Exception e) {
                     ttl = "50";
                 }
-                logger.d("DEBUG", ttl);
-                String destination = "DB";
+
+                String destination;
+                try {
+                    destination = file_path.getName().split("_")[4];
+                }
+                catch (Exception e){
+                    destination = "ALL";
+                }
+
                 double imp = -1;
 
-                if(file.getName().startsWith("GIS_")){
+                if (file_path.getName().startsWith("GIS_")) {
                     imp = 9999999999999.99;
                 }
-
-                if(file.getName().startsWith("MapDisarm_Log_")) {
+                if (file_path.getName().startsWith("MapDisarm_Log_")) {
                     imp = 99999999999999.99;
                 }
-                else {
-                    destination = file.getName().split("_")[4];
-                }
-                /*if(file.getName().startsWith("IMG_")){
-                    imp = 0;
-                }*/
-                enterFile(fileID, file.getName(), seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
-            }
+                logger.d("DEBUG: " , "FileID: " + fileID +
+                        "\n FileName: "+  file_path.getName() +
+                        "\nRelativePath: " + relative_path +
+                         "\nSEQ: " +seq +
+                        "\nSIZE: " + fileSize+
+                        "\nTTL-priority: " + Integer.parseInt(ttl) +
+                        "\nTimestamp: " +timeStamp +
+                        "\nTTL: " +ttl +
+                        "\nDEST: " +destination +
+                        "\nDestinationReachStatus: " +false +
+                        "\nImportance: " +imp);
+                enterFile(fileID, file_path.getName(), relative_path, seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
 
-        }
-
-        for (String key : fileTable.fileMap.keySet()) {
-            FileEntry fileInfo = fileTable.fileMap.get(key);
-            String fileName = fileInfo.getFileName();
-            List<Long> seq = fileInfo.getSequence();
-            if(seq.get(1) != 0){
-            boolean check = new File(FILES_PATH + "/" + fileName).exists();
-            if(!check){
-                fileTable.fileMap.remove(key);
-                logger.d("DEBUG", "FileManaager Remove from DB " + fileName);
-
-            }
             }
         }
     }
 
-    /**
-     * Returns the list of files available in sync directory
-     * @param files_path    : the sync directory
-     * @return              : the list of files in sync directory
-     */
-    private ArrayList<File> findFiles(File files_path) {
-        ArrayList<File> files = new ArrayList<File>();
-        File[] allFile = files_path.listFiles();
-        for(File file : allFile) {
-            // ignore if it is a directory
-            if(!file.isDirectory()) {
-                files.add(file);
+
+    private void removeDeletedFiles(){
+        for (String key : fileTable.fileMap.keySet()) {
+            FileEntry fileInfo = fileTable.fileMap.get(key);
+            String filePath = fileInfo.getFilePath();
+            List<Long> seq = fileInfo.getSequence();
+            if(seq.get(1) != 0){
+                boolean check = new File(FILES_PATH + "/" + filePath).exists();
+                if(!check){
+                    fileTable.fileMap.remove(key);
+                    logger.d("DEBUG", "FileManaager Remove from DB " + filePath);
+
+                }
             }
         }
-        return files;
+
     }
 
     private String getFileIDFromPath(File file){
@@ -520,6 +527,7 @@ class FileTable implements java.io.Serializable{
 class FileEntry implements java.io.Serializable{
     private String fileID;
     private String fileName;
+    private String filePath;
     private List<Long> sequence;
     private double fileSize;
     private int priority;
@@ -529,10 +537,11 @@ class FileEntry implements java.io.Serializable{
     private boolean destinationReachedStatus;
     private double importance;
 
-    public FileEntry(String fileID, String fileName, List<Long> sequence, double fileSize, int priority,
+    public FileEntry(String fileID, String fileName, String filePath, List<Long> sequence, double fileSize, int priority,
                      String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
         this.fileID = fileID;
         this.fileName = fileName;
+        this.filePath = filePath;
         this.sequence = sequence;
         this.fileSize = fileSize;
         this.priority = priority;
@@ -549,6 +558,10 @@ class FileEntry implements java.io.Serializable{
 
     String getFileName(){
         return this.fileName;
+    }
+
+    String getFilePath(){
+        return this.filePath;
     }
 
     List<Long> getSequence() {

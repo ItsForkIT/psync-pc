@@ -27,8 +27,12 @@ public class FileTransporter {
     }
 
 
-    public void downloadFile(String fileID, String fileName, String peerIP, String peerID, long startByte, long endByte, double fileSize) throws MalformedURLException {
-        File f = new File(syncDirectory + "/" + fileName);
+    public void downloadFile(String fileID, String fileName, String filePath, String peerIP, String peerID, long startByte, long endByte, double fileSize) throws MalformedURLException {
+        File f = new File(syncDirectory + "/" + filePath);
+        File parent = f.getParentFile();
+        if(!parent.exists() && !parent.mkdirs()){
+            throw new IllegalStateException("Couldn't create dir: " + parent);
+        }
         URL fileUrl = new URL("http://"+ peerIP +":8080/getFile/" + fileID);
         ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, fileName, f, startByte, endByte, fileSize, peerID);
         Thread t = new Thread(resumeDownloadThread);
