@@ -170,6 +170,15 @@ public class Controller {
         Iterate over all peers
          */
         for(String peers : remotePeerFileTableHashMap.keySet()) {
+            try{
+                String thisPeerId = discoverer.peerList.get(peers).get(0);
+                if(thisPeerId.equals(discoverer.PEER_ID)){
+                    continue;
+                }
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
             /*
             Iterate over all files
              */
