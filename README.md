@@ -73,3 +73,16 @@ month={Jan},}
 
 1. Arka Prava Basu [arkaprava94@gmail.com](mailto:arkaprava94@gmail.com)
 2. Bishakh Chandra Ghosh [ghoshbishakh@gmail.com](mailto:ghoshbishakh@gmail.com)
+
+
+# Developer Instructions
+
+The project uses maven for managing dependencies.
+
+To build jar use `make package`.
+
+To make the distributable use:
+```
+make package
+make dist
+```

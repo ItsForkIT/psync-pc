@@ -1,17 +1,13 @@
 package bishakh.psync;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 
@@ -29,8 +25,11 @@ public class Discoverer {
     final ListenThread listenThread;
     final PeerExpiryThread peerExpiryThread;
 
+    public HashMap<String, Integer> priorityMap;
+
     // peerList format PEER_IP : [PEER_ID, timeAfterLastBroadcast]
-    public volatile ConcurrentHashMap<String, ArrayList<String>> peerList;
+    public volatile ConcurrentHashMap<String, ArrayList<String>> priorityPeerList;
+    public volatile ConcurrentHashMap<String, ArrayList<String>> originalPeerList;
 
     public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj) {
         this.BROADCAST_IP = BROADCAST_IP;
@@ -38,8 +37,21 @@ public class Discoverer {
         this.PEER_ID = PEER_ID;
         this.logger = LoggerObj;
 
-        peerList = new ConcurrentHashMap<String, ArrayList<String>>();
-        // peerList format PEER_IP : [PEER_ID, timeAfterLastBroadcast]
+        // Initialize priorities (lower int = higher priority)
+        // The peers whose ID starts with these keywords will have the priority
+        priorityMap = new HashMap<String, Integer>();
+        priorityMap.put("offlineMcs", 1);
+        priorityMap.put("mule", 2);
+        priorityMap.put("DB", 3);
+        priorityMap.put("others", 4);
+
+
+        // Initialize peer lists
+        originalPeerList = new ConcurrentHashMap<String, ArrayList<String>>();
+        priorityPeerList = new ConcurrentHashMap<String, ArrayList<String>>();
+
+
+        // Initialize threads
         broadcastThread = new BroadcastThread(BROADCAST_IP, PORT);
         listenThread = new ListenThread();
         peerExpiryThread = new PeerExpiryThread();
@@ -113,31 +125,64 @@ public class Discoverer {
         stopPeerExpiry();
     }
 
-    public boolean HPnodePresent(){
-        boolean HPpresent = false;
 
-        boolean defaultMCSPresent = false;
-        boolean DBPresent = false;
-        boolean mulePresent = false;
-
-
-        if(this.PEER_ID.startsWith("DB")){
-            // Check if node of higher priority than DB present
-            return (mulePresent || defaultMCSPresent);
+    public int getPeerPriority(String peerIP) {
+        /*
+        Get priority value of peer from peerIP
+         */
+        ArrayList<String> peerDetails = originalPeerList.get(peerIP);
+        String peerID = peerDetails.get(0);
+        for(String priorityId : priorityMap.keySet()) {
+            if(peerID.startsWith(priorityId) && !peerID.equals(this.PEER_ID)){
+                return priorityMap.get(priorityId);
+            }
         }
+        return priorityMap.get("others");
 
-        if(this.PEER_ID.startsWith("mule")){
-            // Check if node of higher priority than DB present
-            return defaultMCSPresent;
-        }
-        if(this.PEER_ID.startsWith("offlineMcs")){
-            // Highest priority
-            return false;
-        }
-
-        // For normal node:
-        return (defaultMCSPresent || DBPresent || mulePresent);
     }
+
+
+    public int getHighestPeerPriority() {
+        /*
+        Get priority value of highest priority peer
+         */
+        int maxPriority = priorityMap.get("others");
+        for (String s : originalPeerList.keySet()) {
+            int priority = getPeerPriority(s);
+            if(priority < maxPriority){
+                maxPriority = priority;
+            }
+        }
+        return  maxPriority;
+    }
+
+
+    public void updatePriorityPeerList() {
+        /*
+        Generate the priority peer list from the original peer list
+        */
+
+        logger.d("DEBUG: ", "Generating Priority Peer List");
+
+        int maxPriority = getHighestPeerPriority();
+
+        ConcurrentHashMap<String, ArrayList<String>> newPriorityPeerList = new ConcurrentHashMap<String, ArrayList<String>>();
+
+        for (String s : originalPeerList.keySet()) {
+            int spriority = getPeerPriority(s);
+            if(spriority <= maxPriority){
+                newPriorityPeerList.put(s, originalPeerList.get(s));
+            }
+        }
+        this.priorityPeerList = newPriorityPeerList;
+
+        // Log priority peer list
+        for (String s : priorityPeerList.keySet()) {
+            String peerID = priorityPeerList.get(s).get(0);
+            logger.d("DEBUG: ", "PRIORITY PEER: " + peerID);
+        }
+    }
+
 
 
     /**
@@ -288,10 +333,11 @@ public class Discoverer {
             l.add(peerID);
             l.add(0 + "");
             logger.d("DEBUG", "ListenerThread Receive Broadcaset:" + peerID);
-            if(peerList.get(peerIP) == null){
+            if(originalPeerList.get(peerIP) == null){
                 logger.write("PEER_DISCOVERED, " + peerID + ", " + peerIP);
             }
-            peerList.put(peerIP, l);
+            originalPeerList.put(peerIP, l);
+            updatePriorityPeerList();
         }
     }
 
@@ -307,16 +353,17 @@ public class Discoverer {
             exit = false;
             isRunning = true;
             while (!exit) {
-                for (String s : peerList.keySet()) {
-                    ArrayList<String> l = peerList.get(s);
+                for (String s : originalPeerList.keySet()) {
+                    ArrayList<String> l = originalPeerList.get(s);
                     int time = Integer.parseInt(l.get(1));
                     if(time >= 10) {
                         logger.write("PEER_LOST, " + l.get(0) + ", " + s);
-                        peerList.remove(s);
+                        originalPeerList.remove(s);
                         logger.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));
+                        updatePriorityPeerList();
                     } else {
                         l.set(1, String.valueOf(time + 1));
-                        peerList.put(s, l);
+                        originalPeerList.put(s, l);
                     }
                 }
                 try {
