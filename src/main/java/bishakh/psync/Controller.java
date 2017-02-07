@@ -153,7 +153,7 @@ public class Controller {
      */
     void peerFilesFetched(String peerAddress, FileTable remoteFileTable) {
         Gson gson = new Gson();
-        logger.d("DEBUG: ", "Controller file fetch Response code : " + gson.toJson(remoteFileTable).toString());
+        logger.d("DEBUG: ", "Controller file fetch from " + peerAddress);
         if(remotePeerFileTableHashMap != null) {
             remotePeerFileTableHashMap.put(peerAddress, remoteFileTable);
         }
@@ -171,7 +171,7 @@ public class Controller {
          */
         for(String peers : remotePeerFileTableHashMap.keySet()) {
             try{
-                String thisPeerId = discoverer.peerList.get(peers).get(0);
+                String thisPeerId = discoverer.originalPeerList.get(peers).get(0);
                 if(thisPeerId.equals(discoverer.PEER_ID)){
                     continue;
                 }
@@ -207,7 +207,7 @@ public class Controller {
                         else if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) ==
                                 fileManager.fileTable.fileMap.get(files).getFileSize()) { // complete file available
                             isMissing = false;
-                            logger.d("DEBUG: ", "MISSING FILE COMPLETE");
+                            // logger.d("DEBUG: ", "MISSING FILE COMPLETE");
                         }
                         else {
                             if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) <
@@ -270,7 +270,7 @@ public class Controller {
      */
     void removeExpiredRemoteFiles() {
         for(String peer : remotePeerFileTableHashMap.keySet()) {
-            if(discoverer.peerList.get(peer) == null) { // the peer has expired
+            if(discoverer.priorityPeerList.get(peer) == null) { // the peer has expired
                 remotePeerFileTableHashMap.remove(peer);
             }
         }
@@ -305,10 +305,6 @@ public class Controller {
 
     void startDownloadingMissingFiles(){
 
-        if(discoverer.HPnodePresent()){
-            logger.d("DEBUG: ", "High priority node detected.. Syncing Paused");
-            return;
-        }
         if(fileTransporter.ongoingDownloadThreads.size() < maxRunningDownloads) {
 
             /* With file priority */
@@ -330,7 +326,7 @@ public class Controller {
                     try {
                         logger.write("DEBUG " + "Controller MISSING FILE START DOWNLOAD " + fileToDownload.getFileName() + " "+ fileToDownload.getImportance());
                         String peerIP = fileTablePeerID.get(fileToDownload);
-                        String peerID = discoverer.peerList.get(peerIP).get(0);
+                        String peerID = discoverer.originalPeerList.get(peerIP).get(0);
                         fileTransporter.downloadFile(fileToDownload.getFileID(),
                                 fileToDownload.getFileName(), fileToDownload.getFilePath(),
                                 peerIP, peerID, fileToDownload.getSequence().get(1),
@@ -390,7 +386,7 @@ public class Controller {
                 After that update remotePeerFileTableHashMap
                  */
                 logger.d("DEBUG: ", "MISSING FILE CONTROL: " + countMissingFileFetcher);
-                for(String s : discoverer.peerList.keySet()) {
+                for(String s : discoverer.priorityPeerList.keySet()) {
                     if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%4 != 0){
                         logger.d("DEBUG: ", "Controller skip fetching missing files for " + s);
                     }
