@@ -1,5 +1,7 @@
 package bishakh.psync;
-import java.io.IOException;
+import java.io.*;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class SyncService {
 
@@ -9,9 +11,9 @@ public class SyncService {
     private static final int syncInterval = 5;
     private static final int maxRunningDownloads = 5;
 
-    private static String syncDirectory = "/home/alarm/dms/sync/";
-    private static String mapFileServerDirectory = "/home/alarm/dms/";
-    private static String databaseAndLogDirectory = "/home/alarm/dms/";
+    private static String syncDirectory = "/home/alarm/DMS/sync/";
+    private static String mapFileServerDirectory = "/home/alarm/DMS/";
+    private static String databaseAndLogDirectory = "/home/alarm/DMS/";
     private static String databaseName = "fileDB.txt";
 
     public Logger logger;
@@ -32,9 +34,9 @@ public class SyncService {
 
 
     public SyncService(String inputPeerId, String baseDirectory) {
-        syncDirectory = baseDirectory + "dms/sync/";
-        mapFileServerDirectory = baseDirectory + "dms/";
-        databaseAndLogDirectory = baseDirectory + "dms/";
+        syncDirectory = baseDirectory + "DMS/sync/";
+        mapFileServerDirectory = baseDirectory + "DMS/";
+        databaseAndLogDirectory = baseDirectory + "DMS/";
         PEER_ID = inputPeerId;
 
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
@@ -64,7 +66,7 @@ public class SyncService {
         webServer.stop();
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         System.out.println(args.length);
         if(args.length < 2){
             SyncService s = new SyncService();
@@ -74,6 +76,38 @@ public class SyncService {
             SyncService s = new SyncService(args[0], args[1]);
             s.start();
         }
+
+        // Save crash logs in a file every time the application crashes
+        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                Calendar cal = Calendar.getInstance();
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss");
+                File crashLogFile;
+                if(args.length < 2){
+                    crashLogFile = new File("/home/alarm/" + "DMS/PSYNC_CrashLog");
+                }
+                else {
+                    crashLogFile = new File(args[1] + "DMS/PSYNC_CrashLog");
+                }
+                if (!crashLogFile.exists()){
+                    crashLogFile.mkdir();
+                }
+                String filename = crashLogFile + "/" + sdf.format(cal.getTime())+".txt";
+
+                PrintStream writer;
+                try {
+                    writer = new PrintStream(filename, "UTF-8");
+                    writer.println(e.getClass() + ": " + e.getMessage());
+                    for (int i = 0; i < e.getStackTrace().length; i++) {
+                        writer.println(e.getStackTrace()[i].toString());
+                    }
+                    System.exit(1);
+                } catch (FileNotFoundException | UnsupportedEncodingException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
     }
 
 }
