@@ -224,6 +224,7 @@ public class FileTransporter {
                 FileTable fileTable;
                 fileTable = (FileTable) gson.fromJson(br, FileTable.class);
                 controller.peerFilesFetched(peerAddress, fileTable);
+                logger.write("SUMMARY_VECTOR_RECEIVED, " + connection.getContentLength());
                 //Log.d("DEBUG:FILE TRANSPORTER", "List Json: " + gson.toJson(fileTableHashMap).toString());
 
 
