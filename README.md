@@ -26,7 +26,7 @@ Our  testbed  experiments  conducted  with  information  dropbox,
 ground  and  aerial  data  mule  suggest  that
 pSync
 is  scalable  and
-clearly outperforms BitTorrent Sync in delivering even
+clearly outperforms [BitTorrent Sync (now Resilio Sync)](https://en.wikipedia.org/wiki/Resilio_Sync) in delivering even
 30%
 more
 priority  packets  in  certain  test  cases.
