@@ -419,21 +419,23 @@ public class FileManager {
             String fileName = fileEntry.getFileName();
             if((fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
                     fileName.startsWith("TXT_") || fileName.startsWith("SMS_")) && fileEntry.getSequence().get(1) > 0){
-                Set<String> typeSpaceSet = new HashSet<>();
-                String typesString = fileName.split("_")[2];
-                String[] typesArray = typesString.split("-");
-                for(String typeStr:typesArray ){
-                    typeSpaceSet.add(typeStr);
-                }
-                double lat = Double.parseDouble(fileName.split("_")[5]);
-                double lon = Double.parseDouble(fileName.split("_")[6]);
-                String tileName = getTileXYString(lat, lon, 16);
-                typeSpaceSet.add(tileName);
+            if(!fileName.contains("null")){
+                    Set<String> typeSpaceSet = new HashSet<>();
+                    String typesString = fileName.split("_")[2];
+                    String[] typesArray = typesString.split("-");
+                    for(String typeStr:typesArray ){
+                        typeSpaceSet.add(typeStr);
+                    }
+                    double lat = Double.parseDouble(fileName.split("_")[5]);
+                    double lon = Double.parseDouble(fileName.split("_")[6]);
+                    String tileName = getTileXYString(lat, lon, 16);
+                    typeSpaceSet.add(tileName);
 
-                if(countOfTypesWithSpace.get(typeSpaceSet) == null){
-                    countOfTypesWithSpace.put(typeSpaceSet, 0);
+                    if(countOfTypesWithSpace.get(typeSpaceSet) == null){
+                        countOfTypesWithSpace.put(typeSpaceSet, 0);
+                    }
+                    countOfTypesWithSpace.put(typeSpaceSet, countOfTypesWithSpace.get(typeSpaceSet) + 1);
                 }
-                countOfTypesWithSpace.put(typeSpaceSet, countOfTypesWithSpace.get(typeSpaceSet) + 1);
             }
         }
     }
@@ -457,51 +459,53 @@ public class FileManager {
             if(fileName.startsWith("IMG_") || fileName.startsWith("VID_") || fileName.startsWith("SVS_") ||
                     fileName.startsWith("TXT_") || fileName.startsWith("SMS_")){
             if(fileEntry.getSequence().get(1) != 0){
-                // Calculate Rank if the file is at least partially received
+            if(!fileName.contains("null")){
+                    // Calculate Rank if the file is at least partially received
 
-                String typesString = fileName.split("_")[2];
-                String[] typesArray = typesString.split("-");
-                Set<String> typeSpaceSet = new HashSet<>();
-                for(String typeStr:typesArray ){
-                    typeSpaceSet.add(typeStr);
+                    String typesString = fileName.split("_")[2];
+                    String[] typesArray = typesString.split("-");
+                    Set<String> typeSpaceSet = new HashSet<>();
+                    for(String typeStr:typesArray ){
+                        typeSpaceSet.add(typeStr);
+                    }
+                    double lat_ = Double.parseDouble(fileName.split("_")[5]);
+                    double lon_ = Double.parseDouble(fileName.split("_")[6]);
+                    String tileSpaceName = getTileXYString(lat_, lon_, 16);
+                    typeSpaceSet.add(tileSpaceName);
+
+                    int countOfTypeSetInThisFile = countOfTypesWithSpace.get(typeSpaceSet);
+
+                    double proportion = (double) countOfTypeSetInThisFile / (double) totalCountOfAllTypeSets;
+                    logger.d("ImportanceCalculator: ", "Proportion of " + typesString + " : " + proportion);
+
+                    double informationOfFile = (double)(-1) * (Math.log(proportion) / Math.log((double)2));
+                    if(informationOfFile == -0.0){
+                        informationOfFile = 0;
+                    }
+                    logger.d("ImportanceCalculator: ", "Information of " + typesString + " : " + informationOfFile);
+
+                    Date originDate = null;
+
+                    try {
+                        originDate = dateFormat.parse(fileName.split("_")[7]);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+
+                    if(originDate != null){
+                        // calculate aging and set importance
+                        Date currentDate = new Date();
+                        double ageInSeconds = (currentDate.getTime() - originDate.getTime())/1000.0;
+                        double ageInHours = ageInSeconds / (double) 3600.0;
+                        logger.d("ImportanceCalculator: ", "Age of " + fileName + " : " + ageInSeconds);
+
+                        double importanceValue = informationOfFile * Math.pow(2.71828, ((double)(-1.0) * ageInHours));
+                        logger.write("SET FILE IMPORTANCE " + fileName + " " + importanceValue);
+                        fileTable.fileMap.get(fileID).setImportance(importanceValue);
+                    }
+
                 }
-                double lat_ = Double.parseDouble(fileName.split("_")[5]);
-                double lon_ = Double.parseDouble(fileName.split("_")[6]);
-                String tileSpaceName = getTileXYString(lat_, lon_, 16);
-                typeSpaceSet.add(tileSpaceName);
-
-                int countOfTypeSetInThisFile = countOfTypesWithSpace.get(typeSpaceSet);
-
-                double proportion = (double) countOfTypeSetInThisFile / (double) totalCountOfAllTypeSets;
-                logger.d("ImportanceCalculator: ", "Proportion of " + typesString + " : " + proportion);
-
-                double informationOfFile = (double)(-1) * (Math.log(proportion) / Math.log((double)2));
-                if(informationOfFile == -0.0){
-                    informationOfFile = 0;
-                }
-                logger.d("ImportanceCalculator: ", "Information of " + typesString + " : " + informationOfFile);
-
-                Date originDate = null;
-
-                try {
-                    originDate = dateFormat.parse(fileName.split("_")[7]);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-                if(originDate != null){
-                    // calculate aging and set importance
-                    Date currentDate = new Date();
-                    double ageInSeconds = (currentDate.getTime() - originDate.getTime())/1000.0;
-                    double ageInHours = ageInSeconds / (double) 3600.0;
-                    logger.d("ImportanceCalculator: ", "Age of " + fileName + " : " + ageInSeconds);
-
-                    double importanceValue = informationOfFile * Math.pow(2.71828, ((double)(-1.0) * ageInHours));
-                    logger.write("SET FILE IMPORTANCE " + fileName + " " + importanceValue);
-                    fileTable.fileMap.get(fileID).setImportance(importanceValue);
-                }
-
-                }
+            }
             }
         }
     }
