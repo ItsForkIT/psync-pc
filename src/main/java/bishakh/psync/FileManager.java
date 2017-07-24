@@ -304,18 +304,23 @@ public class FileManager {
 
     public void checkDestinationReachStatus(String fileID){
         FileEntry fileEntry = fileTable.fileMap.get(fileID);
-        logger.d("DEBUG: ", "CheckingDestinationReachStatus " + fileEntry.getDestination() + " vs " + PEER_ID);
-        if(fileEntry.getDestination().equals(PEER_ID) && fileEntry.getSequence().get(1) == fileEntry.getFileSize()){
-            logger.d("DEBUG: ", "DESTINATION REACHED - " + fileEntry.getFileName());
-            fileEntry.setDestinationReachedStatus(true);
+        if(fileEntry!=null) {
+            logger.d("DEBUG: ", "CheckingDestinationReachStatus " + fileEntry.getDestination() + " vs " + PEER_ID);
+            if (fileEntry.getDestination().equals(PEER_ID) && fileEntry.getSequence().get(1) == fileEntry.getFileSize()) {
+                logger.d("DEBUG: ", "DESTINATION REACHED - " + fileEntry.getFileName());
+                fileEntry.setDestinationReachedStatus(true);
+            }
         }
     }
 
 
     public void removeOldGpsLogs(String fileID){
 
-
-        final String newLogName = fileTable.fileMap.get(fileID).getFileName();
+        FileEntry newLogFileEntry = fileTable.fileMap.get(fileID);
+        if(newLogFileEntry==null){
+            return;
+        }
+        final String newLogName = newLogFileEntry.getFileName();
 
         if(newLogName.startsWith("MapDisarm_Log")) {
             /* find all log files of same node*/
