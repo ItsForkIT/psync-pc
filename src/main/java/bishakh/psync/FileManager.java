@@ -135,7 +135,7 @@ public class FileManager {
 
     public void setEndSequence(String fileID, long endByte){
         FileEntry fileEntry = fileTable.fileMap.get(fileID);
-        if(fileTable != null){
+        if(fileEntry != null){
             List<Long> prevSeq = fileEntry.getSequence();
             List<Long> newSeq = new ArrayList<Long>();
             newSeq.add(0, prevSeq.get(0));
