@@ -43,7 +43,7 @@ priority  packets  in  certain  test  cases.
 
 3. Run the jar:
     ```
-    java -jar psync-pc-jar-with-dependencies.jar <PEER_ID> <ABSOLUTE_PATH_TO_WORKING_FOLDER>
+    java -jar psync-pc-jar-with-dependencies.jar <PEER_ID> <ABSOLUTE_PATH_TO_WORKING_FOLDER_WITH_TRAILING_SLASH>
     ```
 
 ## License
