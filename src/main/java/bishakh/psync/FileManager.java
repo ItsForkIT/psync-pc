@@ -273,7 +273,7 @@ public class FileManager {
             String filePath = fileInfo.getFilePath();
             List<Long> seq = fileInfo.getSequence();
             if(seq.get(1) != 0){
-                boolean check = new File(FILES_PATH + "/" + filePath).exists();
+                boolean check = new File(FILES_PATH + File.separator + filePath).exists();
                 if(!check){
                     fileTable.fileMap.remove(key);
                     logger.d("DEBUG", "FileManaager Remove from DB " + filePath);

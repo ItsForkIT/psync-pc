@@ -34,9 +34,9 @@ public class SyncService {
 
 
     public SyncService(String inputPeerId, String baseDirectory) {
-        syncDirectory = baseDirectory + "DMS/sync/";
-        mapFileServerDirectory = baseDirectory + "DMS/";
-        databaseAndLogDirectory = baseDirectory + "DMS/";
+        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
+        mapFileServerDirectory = baseDirectory;
+        databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
 
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
