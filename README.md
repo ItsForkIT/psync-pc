@@ -84,6 +84,8 @@ month={Jan},}
 
 The project uses maven for managing dependencies.
 
+*Use java 1.7*
+
 To build jar use `make package`.
 
 To make the distributable use:
