@@ -42,11 +42,11 @@ public class FilePriorityComparator implements Comparator<FileEntry>
         else if(this.priorityMethod == 1){
             if (x.getPriority() > y.getPriority())
             {
-                return -1;
+                return 1;
             }
             if (x.getPriority() < y.getPriority())
             {
-                return 1;
+                return -1;
             }
         }
         else{

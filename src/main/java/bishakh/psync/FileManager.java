@@ -125,7 +125,7 @@ public class FileManager {
      * @param destinationReachedStatus
      */
     private void enterFile(String fileID, String fileName, String filePath, List<Long> sequence, double fileSize, int priority,
-                          String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
+                          String timestamp, int ttl, String destination, boolean destinationReachedStatus, double importance){
         FileEntry newFileInfo = new FileEntry( fileID, fileName, filePath, sequence, fileSize, priority, timestamp,
                 ttl, destination, destinationReachedStatus, importance);
         fileTable.fileMap.put( fileID, newFileInfo);
@@ -260,7 +260,7 @@ public class FileManager {
                         "\nDEST: " +destination +
                         "\nDestinationReachStatus: " +false +
                         "\nImportance: " +imp);
-                enterFile(fileID, file_path.getName(), relative_path, seq, fileSize, Integer.parseInt(ttl), timeStamp, ttl, destination, false, imp);
+                enterFile(fileID, file_path.getName(), relative_path, seq, fileSize, Integer.parseInt(ttl), timeStamp, Integer.parseInt(ttl), destination, false, imp);
 
             }
         }
@@ -541,13 +541,13 @@ class FileEntry implements java.io.Serializable{
     private double fileSize;
     private int priority;
     private String timestamp;
-    private String ttl;
+    private int ttl;
     private String destination;
     private boolean destinationReachedStatus;
     private double importance;
 
     public FileEntry(String fileID, String fileName, String filePath, List<Long> sequence, double fileSize, int priority,
-                     String timestamp, String ttl, String destination, boolean destinationReachedStatus, double importance){
+                     String timestamp, int ttl, String destination, boolean destinationReachedStatus, double importance){
         this.fileID = fileID;
         this.fileName = fileName;
         this.filePath = filePath;
@@ -589,7 +589,7 @@ class FileEntry implements java.io.Serializable{
         return this.timestamp;
     }
 
-    String getTtl(){
+    int getTtl(){
         return this.ttl;
     }
 
@@ -605,7 +605,7 @@ class FileEntry implements java.io.Serializable{
 
     void setImportance(double imp) { this.importance = imp; }
 
-    void setTtl(String ttl) {
+    void setTtl(int ttl) {
         this.ttl = ttl;
     }
 
