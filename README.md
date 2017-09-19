@@ -43,13 +43,18 @@ priority  packets  in  certain  test  cases.
 
 3. Run the jar:
     ```
-    java -jar psync-pc-jar-with-dependencies.jar <PEER_ID> <ABSOLUTE_PATH_TO_WORKING_FOLDER_WITH_TRAILING_SLASH> <priority_method (optional)>
+    java -jar psync-pc-jar-with-dependencies.jar <PEER_ID> <ABSOLUTE_PATH_TO_WORKING_FOLDER_WITH_TRAILING_SLASH> <priority_method (optional)> <restricted epidemic flag (optional)>
     ```
     
     Priority method:
     * 0: Random
     * 1: Based on Priority
-    * 2: Based on Importance
+    * 2: Based on Importance (default)
+
+
+    Restricted epidemic flag:
+    * true: restricted epidemic enabled (default)
+    * false: restricted epidemic disabled
 
 ## License
 

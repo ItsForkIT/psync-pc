@@ -1,4 +1,6 @@
 package bishakh.psync;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -28,7 +30,7 @@ public class SyncService {
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
     }
 
@@ -43,7 +45,7 @@ public class SyncService {
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
     }
 
@@ -57,7 +59,21 @@ public class SyncService {
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, true);
+        webServer = new WebServer(8080, controller, logger);
+    }
+
+    public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) {
+        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
+        mapFileServerDirectory = baseDirectory;
+        databaseAndLogDirectory = baseDirectory;
+        PEER_ID = inputPeerId;
+
+        logger = new Logger(databaseAndLogDirectory, PEER_ID);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
         webServer = new WebServer(8080, controller, logger);
     }
 
@@ -91,8 +107,12 @@ public class SyncService {
             SyncService s = new SyncService(args[0], args[1]);
             s.start();
         }
-        else{
+        else if(args.length < 4){
             SyncService s = new SyncService(args[0], args[1], Integer.parseInt(args[2]));
+            s.start();
+        }
+        else {
+            SyncService s = new SyncService(args[0], args[1], Integer.parseInt(args[2]), Boolean.parseBoolean(args[3]));
             s.start();
         }
 

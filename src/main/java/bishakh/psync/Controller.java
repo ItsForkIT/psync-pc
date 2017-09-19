@@ -24,6 +24,7 @@ public class Controller {
     Logger logger;
     MapDataProcessor mapDataProcessor;
     FilePriorityComparator filePriorityComparator;
+    boolean restrictedEpidemic;
 
     ConcurrentHashMap<String, FileTable> remotePeerFileTableHashMap;
 
@@ -45,7 +46,8 @@ public class Controller {
     ConcurrentHashMap<FileEntry, String> fileTablePeerID;
 
 
-    public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval, int maxRunningDownloads, Logger LoggerObj, int priorityMethod) {
+    public Controller(Discoverer discoverer, FileManager fileManager, FileTransporter fileTransporter, int syncInterval,
+                      int maxRunningDownloads, Logger LoggerObj, int priorityMethod, boolean restrictedEpidemic) {
         this.discoverer = discoverer;
         this.fileManager = fileManager;
         this.syncInterval = syncInterval;
@@ -57,6 +59,7 @@ public class Controller {
         controllerThread = new ControllerThread(this);
         mcontrollerThread  = new Thread(controllerThread);
         this.logger = LoggerObj;
+        this.restrictedEpidemic = restrictedEpidemic;
         filePriorityComparator = new FilePriorityComparator(fileManager, logger, priorityMethod);
         try {
             this.mapDataProcessor = new MapDataProcessor(fileManager.FILES_PATH, fileManager.MAP_DIR_PATH);
@@ -190,17 +193,20 @@ public class Controller {
                 endByte = 0;
                 boolean isMissing = true;
                 remoteEndByte = remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1);
-                if(fileManager.fileTable.fileMap.get(files) != null) {// check whether file in local file table
+                if(fileManager.fileTable.fileMap.get(files) != null) {
+                        // check whether file in local file table
                         //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
                         //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
-                        if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                        if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus() && this.restrictedEpidemic) {
+                            // file already reached dest
                             isMissing = false;
                             logger.d("DEBUG-------------------------->\n", "" + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus() + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getFilePath());
                             logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION - settingRestrictedEpedemicParameter");
                             fileManager.fileTable.fileMap.get(files).setDestinationReachedStatus(true);
                         }
-                        else if (fileManager.fileTable.fileMap.get(files).getDestinationReachedStatus()) { // file already reached dest
+                        else if (fileManager.fileTable.fileMap.get(files).getDestinationReachedStatus() && this.restrictedEpidemic) {
+                            // file already reached dest
                             isMissing = false;
                             logger.d("DEBUG: ", "MISSING FILE ALREADY SENT TO DESTINATION");
                         }
@@ -228,7 +234,7 @@ public class Controller {
                         // CHECK IF IT IS AN OLD GPS LOG
                         if (!fileManager.checkIfOldGPSLog(remotePeerFileTableHashMap.get(peers).fileMap.get(files).getFileName())) {
                             // check if already file has reached dest
-                            if(!remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus()){
+                            if(!remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus() || !this.restrictedEpidemic){
                                 if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
                                     missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
                                 }
