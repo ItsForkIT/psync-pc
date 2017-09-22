@@ -127,7 +127,7 @@ public class SyncService {
                     crashLogFile = new File("/home/alarm/" + "DMS/PSYNC_CrashLog");
                 }
                 else {
-                    crashLogFile = new File(args[1] + "DMS/PSYNC_CrashLog");
+                    crashLogFile = new File(args[1] + "PSYNC_CrashLog");
                 }
                 if (!crashLogFile.exists()){
                     crashLogFile.mkdir();
