@@ -104,7 +104,7 @@ public class Controller {
 
         if(parameter.substring(0, 7).equals("getTile")){
             String tileID = parameter.substring(8);
-            FileAndMime.add(0, fileManager.MAP_DIR_PATH + "/tiles/" + tileID);
+            FileAndMime.add(0, fileManager.MAP_DIR_PATH + "tiles/" + tileID);
             FileAndMime.add(1, "application/octet-stream");
             return FileAndMime;
         }
