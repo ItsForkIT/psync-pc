@@ -603,7 +603,12 @@ class FileEntry implements java.io.Serializable{
 
     double getImportance() { return  this.importance; }
 
-    void setImportance(double imp) { this.importance = imp; }
+    void setImportance(double imp) {
+        if(Double.isInfinite(imp) || Double.isNaN(imp)){
+            imp = 0;
+        }
+        this.importance = imp;
+    }
 
     void setTtl(int ttl) {
         this.ttl = ttl;
