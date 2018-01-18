@@ -197,6 +197,11 @@ public class FileManager {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
+        catch (NullPointerException e) {
+            this.writeDB();
+            this.fileTable = new FileTable(this.PEER_ID);
+            this.fileTable.fileMap = new ConcurrentHashMap();
+        }
     }
 
     /**
