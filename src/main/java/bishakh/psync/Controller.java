@@ -25,6 +25,7 @@ public class Controller {
     MapDataProcessor mapDataProcessor;
     FilePriorityComparator filePriorityComparator;
     boolean restrictedEpidemic;
+    int priorityMethod;
 
     ConcurrentHashMap<String, FileTable> remotePeerFileTableHashMap;
 
@@ -61,6 +62,7 @@ public class Controller {
         this.logger = LoggerObj;
         this.restrictedEpidemic = restrictedEpidemic;
         filePriorityComparator = new FilePriorityComparator(fileManager, logger, priorityMethod);
+        this.priorityMethod = priorityMethod;
         try {
             this.mapDataProcessor = new MapDataProcessor(fileManager.FILES_PATH, fileManager.MAP_DIR_PATH);
         } catch (IOException e) {
@@ -337,6 +339,9 @@ public class Controller {
                                 fileToDownload.getFileName(), fileToDownload.getFilePath(),
                                 peerIP, peerID, fileToDownload.getSequence().get(1),
                                 -1, fileToDownload.getFileSize());
+                        if(priorityMethod == 3){
+                            enqueueKMLAssets(fileToDownload);
+                        }
                     } catch (MalformedURLException e) {
                         e.printStackTrace();
                     }
@@ -348,6 +353,16 @@ public class Controller {
             /* end with file priority */
 
         }
+    }
+
+    void enqueueKMLAssets(FileEntry fileToDownload){
+//        if(!fileToDownload.getFilePath().startsWith("SurakshitKml") && !fileToDownload.getFilePath().startsWith("SurakshitKml")){
+//            return;
+//        }
+//        String unique = fileToDownload.getFileName().split("_")[0];
+//        for(String fileID:missingFileTableHashMap.keySet()){
+//
+//        }
     }
 
 

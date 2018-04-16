@@ -50,6 +50,7 @@ priority  packets  in  certain  test  cases.
     * 0: Random
     * 1: Based on Priority
     * 2: Based on Importance (default)
+    * 3: KML based Chat priority
 
 
     Restricted epidemic flag:
