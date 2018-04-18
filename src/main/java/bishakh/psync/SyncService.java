@@ -7,7 +7,7 @@ import java.util.Calendar;
 
 public class SyncService {
 
-    private static final String BROADCAST_IP = "192.168.43.255";
+    private static final String BROADCAST_IP = "172.16.5.255";
     private static String PEER_ID = "offlineMcs";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
