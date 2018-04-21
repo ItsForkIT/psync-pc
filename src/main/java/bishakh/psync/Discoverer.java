@@ -9,6 +9,12 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.*;
+import java.net.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -16,10 +22,13 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Discoverer {
 
+    HashMap<String,String>mp = new HashMap<>(); /* Store contact information */
+
     String BROADCAST_IP;
     int PORT;
     String PEER_ID;
     Logger logger;
+    File file;      /* File attribute added */
     final Thread[] thread = new Thread[3];
     final BroadcastThread broadcastThread;
     final ListenThread listenThread;
@@ -31,11 +40,12 @@ public class Discoverer {
     public volatile ConcurrentHashMap<String, ArrayList<String>> priorityPeerList;
     public volatile ConcurrentHashMap<String, ArrayList<String>> originalPeerList;
 
-    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj) {
+    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj,File ffile) {
         this.BROADCAST_IP = BROADCAST_IP;
         this.PORT = PORT;
         this.PEER_ID = PEER_ID;
         this.logger = LoggerObj;
+        this.file = ffile; /*file is assigned*/
 
         // Initialize priorities (lower int = higher priority)
         // The peers whose ID starts with these keywords will have the priority
@@ -287,6 +297,26 @@ public class Discoverer {
                     if(willUpdatePeer) {
                         String peerID = new String(datagramPacket.getData(), 0, datagramPacket.getLength());
                         updatePeers(datagramPacket.getAddress().getHostAddress(), peerID);
+                        /////////Added code
+
+
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd-HH:mm:ss");
+                        Calendar cal = Calendar.getInstance();
+                        String timeStamp = dateFormat.format(cal.getTime());
+                        mp.put(peerID, timeStamp);
+                        FileWriter fileWriter = new FileWriter(file.getAbsoluteFile(), true);
+                        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+                        PrintWriter printWriter = new PrintWriter(bufferedWriter);
+                        PrintWriter writer = new PrintWriter(file);
+                        writer.print("");
+                        writer.close();
+                        for(Map.Entry m:mp.entrySet())
+                        {
+                            //System.out.println(m.getKey()+" "+m.getValue());
+                            printWriter.println(m.getKey()+" "+m.getValue());
+                        }
+                        printWriter.close();
+                        ///////////////////////////////////////////////////////////////////////
                     }
                 } // end of while
             }catch (UnknownHostException e){

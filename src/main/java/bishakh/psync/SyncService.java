@@ -17,6 +17,7 @@ public class SyncService {
     private static String mapFileServerDirectory = "/home/alarm/DMS/";
     private static String databaseAndLogDirectory = "/home/alarm/DMS/";
     private static String databaseName = "fileDB.txt";
+    private static String contactFile = "contact.txt";
 
     public Logger logger;
     public WebServer webServer;
@@ -24,14 +25,17 @@ public class SyncService {
     public FileManager fileManager;
     public FileTransporter fileTransporter;
     public Controller controller;
+    public File nfile;
 
     public SyncService() {
+        File nfile =new File(contactFile);
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,nfile);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
+
     }
 
 
@@ -40,9 +44,9 @@ public class SyncService {
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
-
+        File nfile =new File(contactFile);
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,nfile);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
@@ -55,8 +59,9 @@ public class SyncService {
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
 
+        File nfile =new File(contactFile);
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,nfile);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, true);
@@ -68,18 +73,37 @@ public class SyncService {
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
-
+        File nfile =new File(contactFile);
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,nfile);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
         webServer = new WebServer(8080, controller, logger);
+
     }
 
 
 
     public  void start(){
+
+        
+        FileReader fileReader =  new FileReader(nfile);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        try {
+            String line =bufferedReader.readLine();
+            while(line!=null)
+            {
+                String[] one=line.split(" ",100); /// here length of PEER_ID is restricted
+                discoverer.mp.put(one[0],one[1]);
+                line=bufferedReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter writer = new PrintWriter(file);
+        writer.print("");
+        writer.close();
         discoverer.startDiscoverer();
         fileManager.startFileManager();
         controller.startController();
@@ -147,6 +171,8 @@ public class SyncService {
                 }
             }
         });
+
+
     }
 
 }
