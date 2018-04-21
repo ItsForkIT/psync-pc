@@ -316,7 +316,7 @@ public class Discoverer {
                             printWriter.println(m.getKey()+" "+m.getValue());
                         }
                         printWriter.close();
-                        ///////////////////////////////////////////////////////////////////////
+                        ////////////
                     }
                 } // end of while
             }catch (UnknownHostException e){

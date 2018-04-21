@@ -4,12 +4,7 @@ import com.sun.org.apache.xpath.internal.operations.Bool;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.io.*;
-import java.net.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 public class SyncService {
 
@@ -91,7 +86,7 @@ public class SyncService {
 
 
 
-    public  void start(){
+    public  void start() throws FileNotFoundException {
 
         
         FileReader fileReader =  new FileReader(nfile);
@@ -127,7 +122,7 @@ public class SyncService {
         webServer.stop();
     }
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws FileNotFoundException {
         System.out.println(args.length);
         if(args.length < 2){
             SyncService s = new SyncService();
