@@ -1,5 +1,6 @@
 package bishakh.psync;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -25,6 +26,10 @@ public class Discoverer {
     HashMap<String,String>mp = new HashMap<>(); /* Store contact information */
 
     String BROADCAST_IP;
+    final String DATABASE_NAME;
+    final String DATABASE_PATH;
+
+
     int PORT;
     String PEER_ID;
     Logger logger;
@@ -40,12 +45,26 @@ public class Discoverer {
     public volatile ConcurrentHashMap<String, ArrayList<String>> priorityPeerList;
     public volatile ConcurrentHashMap<String, ArrayList<String>> originalPeerList;
 
-    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj,File ffile) {
+    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj,String fileName,String databaseDirectory ) throws IOException {
         this.BROADCAST_IP = BROADCAST_IP;
         this.PORT = PORT;
         this.PEER_ID = PEER_ID;
         this.logger = LoggerObj;
-        this.file = ffile; /*file is assigned*/
+        this.DATABASE_NAME = fileName;
+        this.DATABASE_PATH = databaseDirectory+DATABASE_NAME;
+        this.file = new File(DATABASE_PATH);
+
+        if(file.exists())
+        {
+            System.out.println("File exists");
+        }
+        else
+        {
+            System.out.println("File not there");
+            file.createNewFile();
+            System.out.println("File is created");
+        }
+
 
         // Initialize priorities (lower int = higher priority)
         // The peers whose ID starts with these keywords will have the priority
@@ -68,6 +87,7 @@ public class Discoverer {
         thread[0] = new Thread(broadcastThread);
         thread[1] = new Thread(listenThread);
         thread[2] = new Thread(peerExpiryThread);
+
     }
 
     public void startBroadcast(){
@@ -123,7 +143,23 @@ public class Discoverer {
         }
     }
 
-    public void startDiscoverer(){
+    public void startDiscoverer() throws FileNotFoundException {
+        FileReader fileReader =  new FileReader(file);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        try {
+            String line =bufferedReader.readLine();
+            while(line!=null)
+            {
+                String[] one=line.split(" ",100); /// here length of PEER_ID is restricted
+                mp.put(one[0],one[1]);
+                line=bufferedReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter writer = new PrintWriter(file);
+        writer.print("");
+        writer.close();
         startBroadcast();
         startListener();
         startPeerExpiry();
@@ -410,6 +446,7 @@ public class Discoverer {
             exit = true;
         }
     }
+
 
 
 }

@@ -413,7 +413,7 @@ public class Controller {
                     }
                     else{
                         try {
-                            new Thread(fileTransporter.new ListFetcher(controller, new URL("http://"+s+":8080/list"), s)).start();
+                            new Thread(fileTransporter.new ListFetcher(controller, new URL("http://"+s+":5345/list"), s)).start();
                         } catch (MalformedURLException e) {
                             e.printStackTrace();
                         }
