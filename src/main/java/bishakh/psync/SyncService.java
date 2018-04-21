@@ -107,7 +107,7 @@ public class SyncService {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        PrintWriter writer = new PrintWriter(file);
+        PrintWriter writer = new PrintWriter(nfile);
         writer.print("");
         writer.close();
         discoverer.startDiscoverer();
