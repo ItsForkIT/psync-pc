@@ -18,7 +18,7 @@ public class SyncService {
     private static String mapFileServerDirectory = "/home/alarm/DMS/";
     private static String databaseAndLogDirectory = "/home/alarm/DMS/";
     private static String databaseName = "fileDB.txt";
-    private static String contactName ="contact.txt";
+    private static String contactName ="contactHistoryFile.txt";
 
 
     public Logger logger;
@@ -37,7 +37,7 @@ public class SyncService {
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
-        webServer = new WebServer(5345, controller, logger);
+        webServer = new WebServer(8080, controller, logger);
 
     }
 
@@ -54,7 +54,7 @@ public class SyncService {
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
-        webServer = new WebServer(5345, controller, logger);
+        webServer = new WebServer(8080, controller, logger);
     }
 
     public SyncService(String inputPeerId, String baseDirectory, int priorityMethod) throws IOException {
@@ -69,7 +69,7 @@ public class SyncService {
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, true);
-        webServer = new WebServer(5345, controller, logger);
+        webServer = new WebServer(8080, controller, logger);
     }
 
     public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) throws IOException {
@@ -84,7 +84,7 @@ public class SyncService {
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
-        webServer = new WebServer(5345, controller, logger);
+        webServer = new WebServer(8080, controller, logger);
 
     }
 

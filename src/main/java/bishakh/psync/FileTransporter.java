@@ -33,7 +33,7 @@ public class FileTransporter {
         if(!parent.exists() && !parent.mkdirs()){
             throw new IllegalStateException("Couldn't create dir: " + parent);
         }
-        URL fileUrl = new URL("http://"+ peerIP +":5345/getFile/" + fileID);
+        URL fileUrl = new URL("http://"+ peerIP +":8080/getFile/" + fileID);
         ResumeDownloadThread resumeDownloadThread = new ResumeDownloadThread(fileUrl , fileID, fileName, f, startByte, endByte, fileSize, peerID);
         Thread t = new Thread(resumeDownloadThread);
         ongoingDownloadThreads.put(t, resumeDownloadThread);
