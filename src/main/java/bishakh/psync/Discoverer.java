@@ -51,15 +51,9 @@ public class Discoverer {
         this.DATABASE_PATH = databaseDirectory+DATABASE_NAME;
         this.file = new File(DATABASE_PATH);
 
-        if(file.exists())
+        if(!file.exists())
         {
-
-        }
-        else
-        {
-
-            file.createNewFile();
-
+           file.createNewFile();
         }
 
 
@@ -141,7 +135,7 @@ public class Discoverer {
     }
 
     public void startDiscoverer() throws FileNotFoundException {
-        /*when discoverer starts, previous information in contactHistory.txt gets stored in HashMap contactMap*/
+        /*when discoverer starts, previous information in contactHistory.txt gets stored in HashMap "contactMap" */
         FileReader fileReader =  new FileReader(file);
         BufferedReader bufferedReader = new BufferedReader(fileReader);
         try {
