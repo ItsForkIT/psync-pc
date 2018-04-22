@@ -20,7 +20,7 @@ import java.util.*;
  */
 public class Discoverer {
 
-    HashMap<String,String>mp = new HashMap<>(); /* Store contact information */
+    HashMap<String,String>contactMap = new HashMap<>(); /* Store contact information */
 
     String BROADCAST_IP;
     final String DATABASE_NAME;
@@ -53,13 +53,13 @@ public class Discoverer {
 
         if(file.exists())
         {
-            System.out.println("File exists");
+
         }
         else
         {
-            System.out.println("File not there");
+
             file.createNewFile();
-            System.out.println("File is created");
+
         }
 
 
@@ -141,6 +141,7 @@ public class Discoverer {
     }
 
     public void startDiscoverer() throws FileNotFoundException {
+        /*when discoverer starts, previous information in contactHistory.txt gets stored in HashMap contactMap*/
         FileReader fileReader =  new FileReader(file);
         BufferedReader bufferedReader = new BufferedReader(fileReader);
         try {
@@ -148,7 +149,7 @@ public class Discoverer {
             while(line!=null)
             {
                 String[] one=line.split(" ",100); /// here length of PEER_ID is restricted
-                mp.put(one[0],one[1]);
+                contactMap.put(one[0],one[1]);
                 line=bufferedReader.readLine();
             }
         } catch (IOException e) {
@@ -330,26 +331,25 @@ public class Discoverer {
                     if(willUpdatePeer) {
                         String peerID = new String(datagramPacket.getData(), 0, datagramPacket.getLength());
                         updatePeers(datagramPacket.getAddress().getHostAddress(), peerID);
-                        /////////Added code
 
+                        /* While listening to a device, everytime contactHistory.txt file is updated*/
 
                         DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd-HH:mm:ss");
                         Calendar cal = Calendar.getInstance();
                         String timeStamp = dateFormat.format(cal.getTime());
-                        mp.put(peerID, timeStamp);
+                        contactMap.put(peerID, timeStamp);
                         FileWriter fileWriter = new FileWriter(file.getAbsoluteFile(), true);
                         BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                         PrintWriter printWriter = new PrintWriter(bufferedWriter);
                         PrintWriter writer = new PrintWriter(file);
                         writer.print("");
                         writer.close();
-                        for(Map.Entry m:mp.entrySet())
+                        for(Map.Entry m:contactMap.entrySet())
                         {
-                            //System.out.println(m.getKey()+" "+m.getValue());
                             printWriter.println(m.getKey()+" "+m.getValue());
                         }
                         printWriter.close();
-                        ////////////
+
                     }
                 } // end of while
             }catch (UnknownHostException e){

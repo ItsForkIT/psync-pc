@@ -31,7 +31,7 @@ public class SyncService {
 
     public SyncService() throws IOException {
 
-        //System.exit(0);
+
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
@@ -48,7 +48,7 @@ public class SyncService {
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
 
-        //System.exit(0);
+
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
@@ -63,7 +63,7 @@ public class SyncService {
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
 
-        //System.exit(0);
+
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
@@ -74,7 +74,7 @@ public class SyncService {
 
     public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) throws IOException {
 
-        //System.exit(0);
+
         syncDirectory = baseDirectory + "sync" + "/";
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
