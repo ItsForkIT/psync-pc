@@ -43,7 +43,7 @@ public class SyncService {
 
 
     public SyncService(String inputPeerId, String baseDirectory) throws IOException {
-        syncDirectory = baseDirectory  + "sync" + "/";
+        syncDirectory = baseDirectory  + "sync" + File.separator;
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
@@ -58,7 +58,7 @@ public class SyncService {
     }
 
     public SyncService(String inputPeerId, String baseDirectory, int priorityMethod) throws IOException {
-        syncDirectory = baseDirectory +"sync" + "/";
+        syncDirectory = baseDirectory +"sync" + File.separator;
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
@@ -75,7 +75,7 @@ public class SyncService {
     public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) throws IOException {
 
 
-        syncDirectory = baseDirectory + "sync" + "/";
+        syncDirectory = baseDirectory + "sync" + File.separator;
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
