@@ -5,6 +5,7 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+
 public class SyncService {
 
     private static final String BROADCAST_IP = "172.16.5.255";
@@ -17,6 +18,8 @@ public class SyncService {
     private static String mapFileServerDirectory = "/home/alarm/DMS/";
     private static String databaseAndLogDirectory = "/home/alarm/DMS/";
     private static String databaseName = "fileDB.txt";
+    private static String contactName ="contactHistoryFile.txt";
+
 
     public Logger logger;
     public WebServer webServer;
@@ -24,62 +27,73 @@ public class SyncService {
     public FileManager fileManager;
     public FileTransporter fileTransporter;
     public Controller controller;
+   
 
-    public SyncService() {
+    public SyncService() throws IOException {
+
+
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
+        fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
+        webServer = new WebServer(8080, controller, logger);
+
+    }
+
+
+    public SyncService(String inputPeerId, String baseDirectory) throws IOException {
+        syncDirectory = baseDirectory  + "sync" + File.separator;
+        mapFileServerDirectory = baseDirectory;
+        databaseAndLogDirectory = baseDirectory;
+        PEER_ID = inputPeerId;
+
+
+        logger = new Logger(databaseAndLogDirectory, PEER_ID);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
     }
 
-
-    public SyncService(String inputPeerId, String baseDirectory) {
-        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
+    public SyncService(String inputPeerId, String baseDirectory, int priorityMethod) throws IOException {
+        syncDirectory = baseDirectory +"sync" + File.separator;
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
 
-        logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
-        fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
-        fileTransporter = new FileTransporter(syncDirectory, logger);
-        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
-        webServer = new WebServer(8080, controller, logger);
-    }
-
-    public SyncService(String inputPeerId, String baseDirectory, int priorityMethod) {
-        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
-        mapFileServerDirectory = baseDirectory;
-        databaseAndLogDirectory = baseDirectory;
-        PEER_ID = inputPeerId;
 
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, true);
         webServer = new WebServer(8080, controller, logger);
     }
 
-    public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) {
-        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
+    public SyncService(String inputPeerId, String baseDirectory, int priorityMethod, boolean restrictedEpidemicFlag) throws IOException {
+
+
+        syncDirectory = baseDirectory + "sync" + File.separator;
         mapFileServerDirectory = baseDirectory;
         databaseAndLogDirectory = baseDirectory;
         PEER_ID = inputPeerId;
-
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
-        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger,contactName,databaseAndLogDirectory);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
         fileTransporter = new FileTransporter(syncDirectory, logger);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
         webServer = new WebServer(8080, controller, logger);
+
     }
 
 
 
-    public  void start(){
+    public  void start() throws FileNotFoundException {
+
+        
+
         discoverer.startDiscoverer();
         fileManager.startFileManager();
         controller.startController();
@@ -97,7 +111,7 @@ public class SyncService {
         webServer.stop();
     }
 
-    public static void main(final String[] args) {
+    public static void main(final String[] args) throws IOException {
         System.out.println(args.length);
         if(args.length < 2){
             SyncService s = new SyncService();
@@ -147,6 +161,8 @@ public class SyncService {
                 }
             }
         });
+
+
     }
 
 }

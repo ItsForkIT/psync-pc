@@ -9,6 +9,10 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.io.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 
 /**
@@ -16,10 +20,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Discoverer {
 
+    HashMap<String,String>contactMap = new HashMap<>(); /* Store contact information */
+
     String BROADCAST_IP;
+    final String DATABASE_NAME;
+    final String DATABASE_PATH;
+
+
     int PORT;
     String PEER_ID;
     Logger logger;
+    File file;      /* File attribute added */
     final Thread[] thread = new Thread[3];
     final BroadcastThread broadcastThread;
     final ListenThread listenThread;
@@ -31,11 +42,20 @@ public class Discoverer {
     public volatile ConcurrentHashMap<String, ArrayList<String>> priorityPeerList;
     public volatile ConcurrentHashMap<String, ArrayList<String>> originalPeerList;
 
-    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj) {
+    public Discoverer(String BROADCAST_IP, String PEER_ID, int PORT, Logger LoggerObj,String fileName,String databaseDirectory ) throws IOException {
         this.BROADCAST_IP = BROADCAST_IP;
         this.PORT = PORT;
         this.PEER_ID = PEER_ID;
         this.logger = LoggerObj;
+        this.DATABASE_NAME = fileName;
+        this.DATABASE_PATH = databaseDirectory+DATABASE_NAME;
+        this.file = new File(DATABASE_PATH);
+
+        if(!file.exists())
+        {
+           file.createNewFile();
+        }
+
 
         // Initialize priorities (lower int = higher priority)
         // The peers whose ID starts with these keywords will have the priority
@@ -58,6 +78,7 @@ public class Discoverer {
         thread[0] = new Thread(broadcastThread);
         thread[1] = new Thread(listenThread);
         thread[2] = new Thread(peerExpiryThread);
+
     }
 
     public void startBroadcast(){
@@ -113,7 +134,24 @@ public class Discoverer {
         }
     }
 
-    public void startDiscoverer(){
+    public void startDiscoverer() throws FileNotFoundException {
+        /*when discoverer starts, previous information in contactHistory.txt gets stored in HashMap "contactMap" */
+        FileReader fileReader =  new FileReader(file);
+        BufferedReader bufferedReader = new BufferedReader(fileReader);
+        try {
+            String line =bufferedReader.readLine();
+            while(line!=null)
+            {
+                String[] one=line.split(" ",100); /// here length of PEER_ID is restricted
+                contactMap.put(one[0],one[1]);
+                line=bufferedReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter writer = new PrintWriter(file);
+        writer.print("");
+        writer.close();
         startBroadcast();
         startListener();
         startPeerExpiry();
@@ -287,6 +325,25 @@ public class Discoverer {
                     if(willUpdatePeer) {
                         String peerID = new String(datagramPacket.getData(), 0, datagramPacket.getLength());
                         updatePeers(datagramPacket.getAddress().getHostAddress(), peerID);
+
+                        /* While listening to a device, everytime contactHistory.txt file is updated*/
+
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd-HH:mm:ss");
+                        Calendar cal = Calendar.getInstance();
+                        String timeStamp = dateFormat.format(cal.getTime());
+                        contactMap.put(peerID, timeStamp);
+                        FileWriter fileWriter = new FileWriter(file.getAbsoluteFile(), true);
+                        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+                        PrintWriter printWriter = new PrintWriter(bufferedWriter);
+                        PrintWriter writer = new PrintWriter(file);
+                        writer.print("");
+                        writer.close();
+                        for(Map.Entry m:contactMap.entrySet())
+                        {
+                            printWriter.println(m.getKey()+" "+m.getValue());
+                        }
+                        printWriter.close();
+
                     }
                 } // end of while
             }catch (UnknownHostException e){
@@ -380,6 +437,7 @@ public class Discoverer {
             exit = true;
         }
     }
+
 
 
 }
