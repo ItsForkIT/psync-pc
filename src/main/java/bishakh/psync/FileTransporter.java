@@ -22,12 +22,12 @@ public class FileTransporter {
     Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileEntry>>(){}.getType();
     String syncDirectory;
     Logger logger;
-    File dumpDirectory;
+    String dumpDirectory;
 
     public FileTransporter(String syncDirectory, Logger LoggerObj, String dumpDirectory){
         this.syncDirectory = syncDirectory;
         this.logger = LoggerObj;
-        this.dumpDirectory = new File(dumpDirectory);
+        this.dumpDirectory = dumpDirectory;
     }
 
 
@@ -163,7 +163,8 @@ public class FileTransporter {
                     logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
                     if(this.presentByte == this.filesize){
                         try {
-                            Files.copy(outputFile.toPath(), dumpDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            File destination = new File(dumpDirectory + "sync" + File.separator + fileName);
+                            Files.copy(outputFile.toPath(), destination.toPath(), StandardCopyOption.REPLACE_EXISTING);
                             logger.d("DEBUG:FILE TRANSPORTER", "DUMP FILE " + fileName);
                         } catch (IOException e) {
                             e.printStackTrace();
