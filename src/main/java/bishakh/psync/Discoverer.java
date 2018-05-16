@@ -221,7 +221,7 @@ public class Discoverer {
                         e.printStackTrace();
                         logger.d("DEBUG", "Broadcast Packet Sending Failed");
                     }
-                    Thread.sleep(3000);
+                    Thread.sleep(8000);
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
@@ -265,7 +265,7 @@ public class Discoverer {
         @Override
         public void run() {
             try{
-                datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("0.0.0.0"));
+                datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("192.168.0.255"));
                 datagramSocket.setBroadcast(true);
                 datagramSocket.setSoTimeout(200);
 
@@ -356,7 +356,7 @@ public class Discoverer {
                 for (String s : originalPeerList.keySet()) {
                     ArrayList<String> l = originalPeerList.get(s);
                     int time = Integer.parseInt(l.get(1));
-                    if(time >= 10) {
+                    if(time >= 32) {
                         logger.write("PEER_LOST, " + l.get(0) + ", " + s);
                         originalPeerList.remove(s);
                         logger.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));

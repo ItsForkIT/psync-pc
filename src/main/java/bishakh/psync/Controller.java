@@ -160,8 +160,17 @@ public class Controller {
     void peerFilesFetched(String peerAddress, FileTable remoteFileTable) {
         Gson gson = new Gson();
         logger.d("DEBUG: ", "Controller file fetch from " + peerAddress);
-        if(remotePeerFileTableHashMap != null) {
-            remotePeerFileTableHashMap.put(peerAddress, remoteFileTable);
+        if(remotePeerFileTableHashMap != null && remoteFileTable != null ) {
+            try{
+                logger.d("DEBUG: ", "Updated remoteFileTable " + peerAddress);
+                remotePeerFileTableHashMap.put(peerAddress, remoteFileTable);
+            }
+            catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+        else {
+            logger.d("DEBUG: ", "Corrupted remoteFileTable " + peerAddress);
         }
     }
 
@@ -178,6 +187,7 @@ public class Controller {
         for(String peers : remotePeerFileTableHashMap.keySet()) {
             try{
                 String thisPeerId = discoverer.originalPeerList.get(peers).get(0);
+                logger.d("DEBUG: ", "Calculating missing files for " + thisPeerId);
                 if(thisPeerId.equals(discoverer.PEER_ID)){
                     continue;
                 }
@@ -192,14 +202,12 @@ public class Controller {
                 /*
                 Find whether the peer has any file which is missing in device
                  */
+                logger.d("DEBUG: ", " == " + files);
                 if (remotePeerFileTableHashMap.get(peers).fileMap.get(files) != null){
                 endByte = 0;
                 boolean isMissing = true;
                 remoteEndByte = remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1);
                 if(fileManager.fileTable.fileMap.get(files) != null) {
-                        // check whether file in local file table
-                        //logger.d("DEBUG: ", "MISSING FILE END BYTE : " + fileManager.fileTableHashMap.get(myFiles).getSequence().get(1));
-                        //logger.d("DEBUG: ", "MISSING FILE SIZE " + fileManager.fileTableHashMap.get(myFiles).getFileSize());
 
                         if (remotePeerFileTableHashMap.get(peers).fileMap.get(files).getDestinationReachedStatus() && this.restrictedEpidemic) {
                             // file already reached dest
@@ -216,18 +224,22 @@ public class Controller {
                         else if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) ==
                                 fileManager.fileTable.fileMap.get(files).getFileSize()) { // complete file available
                             isMissing = false;
-                            // logger.d("DEBUG: ", "MISSING FILE COMPLETE");
+                            logger.d("DEBUG", fileManager.fileTable.fileMap.get(files).getSequence().get(1) + "");
+                            logger.d("DEBUG", fileManager.fileTable.fileMap.get(files).getFileSize() + "");
+                            logger.d("DEBUG: ", "MISSING FILE COMPLETE");
                         }
                         else {
                             if (fileManager.fileTable.fileMap.get(files).getSequence().get(1) <
                                     remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1)) {
                                 isMissing = true;
-                                logger.d("DEBUG: ", "MISSING FILE INCOMPLETE");
+                                logger.d("DEBUG: ", "MISSING FILE INCOMPLETE" + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1));
                                 endByte = fileManager.fileTable.fileMap.get(files).getSequence().get(1);
                             } else {
+                                logger.d("DEBUG: ", "MISSING FILE MORE THAN REMOTE" + remotePeerFileTableHashMap.get(peers).fileMap.get(files).getSequence().get(1));
                                 isMissing = false;
                             }
                         }
+                        logger.d("DEBUG: ", " HERE1 -------- " + isMissing);
                     }
                 if (isMissing) { // file is missing
                     //Log.d("DEBUG: ", "MISSING FILE TRUE");
@@ -255,6 +267,7 @@ public class Controller {
                     // Make file manager entry
                     if (fileManager.fileTable.fileMap.get(files) == null) {
                         fileManager.fileTable.fileMap.put(files, remotePeerFileTableHashMap.get(peers).fileMap.get(files));
+                        logger.d("DEBUG: ", " HERE2 END SEQ SET -------- " + endByte);
                         fileManager.forceSetEndSequence(files, endByte);
                     }
 
@@ -280,6 +293,7 @@ public class Controller {
     void removeExpiredRemoteFiles() {
         for(String peer : remotePeerFileTableHashMap.keySet()) {
             if(discoverer.priorityPeerList.get(peer) == null) { // the peer has expired
+                logger.d("DEBUG: ", "PEER HAS EXPIRED - Removing from missing files list: " + peer);
                 remotePeerFileTableHashMap.remove(peer);
             }
         }

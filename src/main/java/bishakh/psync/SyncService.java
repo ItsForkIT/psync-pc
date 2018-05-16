@@ -7,11 +7,11 @@ import java.util.Calendar;
 
 public class SyncService {
 
-    private static final String BROADCAST_IP = "172.16.5.255";
+    private static String BROADCAST_IP = "192.168.0.255";
     private static String PEER_ID = "offlineMcs";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
-    private static final int maxRunningDownloads = 5;
+    private static final int maxRunningDownloads = 1;
 
     private static String syncDirectory = "/home/alarm/DMS/sync/";
     private static String mapFileServerDirectory = "/home/alarm/DMS/";

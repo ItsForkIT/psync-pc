@@ -29,6 +29,35 @@ public class FilePriorityComparator implements Comparator<FileEntry>
     @Override
     public int compare(FileEntry x, FileEntry y)
     {
+        if(this.priorityMethod == 4){
+            // ONLY KML FIRST ========================================================
+            // one kml another diff
+            if(x.getFilePath().startsWith("SurakshitKml") && y.getFilePath().startsWith("SurakshitDiff")){
+                return -1;
+            }
+            if(x.getFilePath().startsWith("SurakshitDiff") && y.getFilePath().startsWith("SurakshitKml")){
+                return 1;
+            }
+
+            // x,y both kml/diff
+            if((x.getFilePath().startsWith("SurakshitKml") && y.getFilePath().startsWith("SurakshitKml")) ||
+                    (x.getFilePath().startsWith("SurakshitDiff") && y.getFilePath().startsWith("SurakshitDiff"))){
+                int xpriority = x.getPriority();
+                int ypriority = y.getPriority();
+                if(xpriority > ypriority){
+                    return -1;
+                }
+                return 1;
+
+            }
+
+            // x kml
+            if((x.getFilePath().startsWith("SurakshitKml") || x.getFilePath().startsWith("SurakshitDiff"))
+                    && !(y.getFilePath().startsWith("SurakshitKml") || y.getFilePath().startsWith("SurakshitDiff"))){
+                return -1;
+            }
+            return 1;
+        }
         if(this.priorityMethod == 3){
             // PGP has highest priority ========================================================
             // both pgp keys
