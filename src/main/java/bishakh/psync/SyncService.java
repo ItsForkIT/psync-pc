@@ -7,13 +7,14 @@ import java.util.Calendar;
 
 public class SyncService {
 
-    private static String BROADCAST_IP = "192.168.0.255";
+    private static String BROADCAST_IP = "192.168.43.255";
     private static String PEER_ID = "offlineMcs";
     private static final int PORT = 4446;
     private static final int syncInterval = 5;
-    private static final int maxRunningDownloads = 1;
+    private static final int maxRunningDownloads = 5;
 
     private static String syncDirectory = "/home/alarm/DMS/sync/";
+    private static String dumpDirectory = "/home/alarm/LONG_RANGE/sync/";
     private static String mapFileServerDirectory = "/home/alarm/DMS/";
     private static String databaseAndLogDirectory = "/home/alarm/DMS/";
     private static String databaseName = "fileDB.txt";
@@ -29,7 +30,7 @@ public class SyncService {
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
-        fileTransporter = new FileTransporter(syncDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger, dumpDirectory);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
     }
@@ -44,7 +45,7 @@ public class SyncService {
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
-        fileTransporter = new FileTransporter(syncDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger, dumpDirectory);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, 2, true);
         webServer = new WebServer(8080, controller, logger);
     }
@@ -58,7 +59,7 @@ public class SyncService {
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
-        fileTransporter = new FileTransporter(syncDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger, dumpDirectory);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, true);
         webServer = new WebServer(8080, controller, logger);
     }
@@ -72,11 +73,26 @@ public class SyncService {
         logger = new Logger(databaseAndLogDirectory, PEER_ID);
         discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
         fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
-        fileTransporter = new FileTransporter(syncDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger, dumpDirectory);
         controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
         webServer = new WebServer(8080, controller, logger);
     }
 
+
+
+    public SyncService(String inputPeerId, String baseDirectory, String dumpDirectory, int priorityMethod, boolean restrictedEpidemicFlag) {
+        syncDirectory = baseDirectory + File.separator + "sync" + File.separator;
+        mapFileServerDirectory = baseDirectory;
+        databaseAndLogDirectory = baseDirectory;
+        PEER_ID = inputPeerId;
+
+        logger = new Logger(databaseAndLogDirectory, PEER_ID);
+        discoverer = new Discoverer(BROADCAST_IP, PEER_ID, PORT, logger);
+        fileManager = new FileManager(PEER_ID, databaseName, databaseAndLogDirectory, syncDirectory, mapFileServerDirectory, logger);
+        fileTransporter = new FileTransporter(syncDirectory, logger, dumpDirectory);
+        controller = new Controller(discoverer, fileManager, fileTransporter, syncInterval, maxRunningDownloads, logger, priorityMethod, restrictedEpidemicFlag);
+        webServer = new WebServer(8080, controller, logger);
+    }
 
 
     public  void start(){
@@ -111,8 +127,12 @@ public class SyncService {
             SyncService s = new SyncService(args[0], args[1], Integer.parseInt(args[2]));
             s.start();
         }
-        else {
+        else if(args.length < 5){
             SyncService s = new SyncService(args[0], args[1], Integer.parseInt(args[2]), Boolean.parseBoolean(args[3]));
+            s.start();
+        }
+        else {
+            SyncService s = new SyncService(args[0], args[1], args[2], Integer.parseInt(args[3]), Boolean.parseBoolean(args[4]));
             s.start();
         }
 

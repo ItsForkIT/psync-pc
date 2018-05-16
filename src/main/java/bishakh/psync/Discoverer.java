@@ -212,9 +212,9 @@ public class Discoverer {
                 buffer = PEER_ID.getBytes("UTF-8");
                 this.isRunning = true;
                 while(!this.exit) {
-                    //datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
-                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.43.255"), PORT);
-                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.0.255"), PORT);
+                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
+                    //datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.43.255"), PORT);
+                    //datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.0.255"), PORT);
                     try {
                         datagramSocket.send(datagramPacket);
                         logger.d("DEBUG", "Broadcast Packet Sent");

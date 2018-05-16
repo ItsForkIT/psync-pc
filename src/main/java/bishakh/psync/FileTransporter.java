@@ -7,6 +7,8 @@ import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,10 +22,12 @@ public class FileTransporter {
     Type ConcurrentHashMapType = new TypeToken<ConcurrentHashMap<String, FileEntry>>(){}.getType();
     String syncDirectory;
     Logger logger;
+    File dumpDirectory;
 
-    public FileTransporter(String syncDirectory, Logger LoggerObj){
+    public FileTransporter(String syncDirectory, Logger LoggerObj, String dumpDirectory){
         this.syncDirectory = syncDirectory;
         this.logger = LoggerObj;
+        this.dumpDirectory = new File(dumpDirectory);
     }
 
 
@@ -157,6 +161,14 @@ public class FileTransporter {
                 }
                 if(response == 200) {
                     logger.write("STOP_FILE_DOWNLOAD, " + fileID + ", " + fileName + ", " + this.presentByte + ", " + this.filesize + ", " + this.peerId);
+                    if(this.presentByte == this.filesize){
+                        try {
+                            Files.copy(outputFile.toPath(), dumpDirectory.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            logger.d("DEBUG:FILE TRANSPORTER", "DUMP FILE " + fileName);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
                 this.isRunning = false;
             }
@@ -240,4 +252,5 @@ public class FileTransporter {
             }
         }
     }
+
 }
