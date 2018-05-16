@@ -98,8 +98,8 @@ public class FileTransporter {
                 }
                 connection.setRequestProperty("Range", "bytes=" + byteRange);
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout( 5*1000);
-                connection.setReadTimeout(5*1000);
+                connection.setConnectTimeout( 10*1000);
+                connection.setReadTimeout(10*1000);
 
                 logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 
@@ -202,8 +202,8 @@ public class FileTransporter {
 
                 //conn.setRequestProperty("Range", "bytes=" + byteRange);
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(5 * 1000);
-                connection.setReadTimeout(5 * 1000);
+                connection.setConnectTimeout(10 * 1000);
+                connection.setReadTimeout(10 * 1000);
 
                 logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 

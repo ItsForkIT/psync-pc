@@ -212,7 +212,9 @@ public class Discoverer {
                 buffer = PEER_ID.getBytes("UTF-8");
                 this.isRunning = true;
                 while(!this.exit) {
-                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
+                    //datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
+                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.43.255"), PORT);
+                    datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName("192.168.0.255"), PORT);
                     try {
                         datagramSocket.send(datagramPacket);
                         logger.d("DEBUG", "Broadcast Packet Sent");
@@ -221,7 +223,7 @@ public class Discoverer {
                         e.printStackTrace();
                         logger.d("DEBUG", "Broadcast Packet Sending Failed");
                     }
-                    Thread.sleep(3000);
+                    Thread.sleep(8000);
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
@@ -356,7 +358,7 @@ public class Discoverer {
                 for (String s : originalPeerList.keySet()) {
                     ArrayList<String> l = originalPeerList.get(s);
                     int time = Integer.parseInt(l.get(1));
-                    if(time >= 10) {
+                    if(time >= 32) {
                         logger.write("PEER_LOST, " + l.get(0) + ", " + s);
                         originalPeerList.remove(s);
                         logger.d("DEBUG", "PeerExpiryThread Remove:" + l.get(0));
