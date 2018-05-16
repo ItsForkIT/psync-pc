@@ -452,7 +452,7 @@ public class Controller {
                  */
                 logger.d("DEBUG: ", "MISSING FILE CONTROL: " + countMissingFileFetcher);
                 for(String s : discoverer.priorityPeerList.keySet()) {
-                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%4 != 0){
+                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%12 != 0){
                         logger.d("DEBUG: ", "Controller skip fetching missing files for " + s);
                     }
                     else{
@@ -464,7 +464,7 @@ public class Controller {
                     }
                 }
 
-                if(countMissingFileFetcher%4 != 0){
+                if(countMissingFileFetcher%12 != 0){
                     countMissingFileFetcher+=1;
                 }
                 else {

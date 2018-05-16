@@ -83,7 +83,7 @@ public class FileTransporter {
                 isRunning = true;
                 // open Http connection to URL
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-                logger.d("DEBUG:FILE TRANSPORTER", "URl is" + url);
+                logger.d("DEBUG:FILE TRANSPORTER", " URl is" + url);
 
 
                 // set the range of byte to download
@@ -98,8 +98,8 @@ public class FileTransporter {
                 }
                 connection.setRequestProperty("Range", "bytes=" + byteRange);
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout( 10*1000);
-                connection.setReadTimeout(10*1000);
+                connection.setConnectTimeout( 40*1000);
+                connection.setReadTimeout(40*1000);
 
                 logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 
@@ -202,35 +202,36 @@ public class FileTransporter {
 
                 //conn.setRequestProperty("Range", "bytes=" + byteRange);
                 connection.setRequestMethod("GET");
-                connection.setConnectTimeout(10 * 1000);
-                connection.setReadTimeout(10 * 1000);
+                connection.setConnectTimeout(40 * 1000);
+                connection.setReadTimeout(40 * 1000);
 
                 logger.d("DEBUG:FILE TRANSPORTER", "Connection created" + byteRange);
 
                 // connect to server
                 connection.connect();
-                logger.d("DEBUG:FILE TRANSPORTER", "Callled connect with timeout " + connection.getConnectTimeout());
+                logger.d("DEBUG:FILE TRANSPORTER", " Callled connect with timeout " + connection.getConnectTimeout());
+                logger.d("DEBUG:FILE TRANSPORTER", " ============================== ");
                 logger.d("DEBUG:FILE TRANSPORTER", "" + connection.getResponseCode());
 
                 // Make sure the response code is in the 200 range.
                 if (connection.getResponseCode() / 100 != 2) {
-                    logger.d("DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
+                    logger.d("===================DEBUG:FILE TRANSPORTER", "error : Response code out of 200 range");
                 }
 
-                logger.d("DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
+                logger.d("====================DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
                 // get the input stream
                 in = new BufferedInputStream(connection.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
                 FileTable fileTable;
                 fileTable = (FileTable) gson.fromJson(br, FileTable.class);
                 controller.peerFilesFetched(peerAddress, fileTable);
-                logger.write("SUMMARY_VECTOR_RECEIVED, " + connection.getContentLength());
+                logger.write("==============SUMMARY_VECTOR_RECEIVED, " + connection.getContentLength());
                 //Log.d("DEBUG:FILE TRANSPORTER", "List Json: " + gson.toJson(fileTableHashMap).toString());
 
 
             } catch (Exception e) {
                 e.printStackTrace();
-                logger.d("DEBUG:FILE TRANSPORTER", "Connection not established" + e);
+                logger.d("==========================DEBUG:FILE TRANSPORTER", "Connection not established" + e);
             } finally {
                 if (in != null) {
                     try {
