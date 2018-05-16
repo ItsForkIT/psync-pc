@@ -2,6 +2,7 @@ package bishakh.psync;
 
 import com.google.gson.Gson;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -355,14 +356,43 @@ public class Controller {
         }
     }
 
-    void enqueueKMLAssets(FileEntry fileToDownload){
-//        if(!fileToDownload.getFilePath().startsWith("SurakshitKml") && !fileToDownload.getFilePath().startsWith("SurakshitKml")){
-//            return;
-//        }
-//        String unique = fileToDownload.getFileName().split("_")[0];
-//        for(String fileID:missingFileTableHashMap.keySet()){
-//
-//        }
+    void enqueueKMLAssets(FileEntry fileToDownload) {
+        if (!fileToDownload.getFilePath().startsWith("SurakshitKml") && !fileToDownload.getFilePath().startsWith("SurakshitDiff")) {
+            return;
+        }
+        String unique = fileToDownload.getFileName().split("_")[0];
+        for (Map.Entry<String, ConcurrentHashMap<String, FileEntry>> peerFileTable : missingFileTableHashMap.entrySet()) {
+            ConcurrentHashMap<String, FileEntry> fileTable = peerFileTable.getValue();
+            String peerID = peerFileTable.getKey();
+            for (FileEntry fileEntry : fileTable.values()) {
+                String thisUnique = fileEntry.getFileName().split("_")[0];
+                if(thisUnique.equals(unique)){
+
+                    // Check if already ongoing download
+                    boolean ongoing = false;
+                    for(Thread t : fileTransporter.ongoingDownloadThreads.keySet()){
+                        logger.d("DEBUG: ", "MISSING FILE ONGOING CHECK" + fileEntry.getFileID());
+                        //Log.d("DEBUG: ", "MISSING FILE ONGOING" + fileTransporter.ongoingDownloadThreads.get(t).fileID );
+                        if(fileTransporter.ongoingDownloadThreads.get(t).fileID.equals(fileEntry.getFileID())){
+                            ongoing = true;
+                            break;
+                        }
+                    }
+                    if(!ongoing){
+                        String peerIP = fileTablePeerID.get(fileEntry);
+                        try {
+                            fileTransporter.downloadFile(fileEntry.getFileID(),
+                                    fileEntry.getFileName(), fileEntry.getFilePath(),
+                                    peerIP, peerID, fileEntry.getSequence().get(1),
+                                    -1, fileEntry.getFileSize());
+                        } catch (MalformedURLException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                }
+            }
+        }
     }
 
 
