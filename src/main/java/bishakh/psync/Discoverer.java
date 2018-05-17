@@ -214,7 +214,7 @@ public class Discoverer {
                 while(!this.exit) {
                     datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getByName(BROADCAST_IP), PORT);
                     try {
-                        //datagramSocket.send(datagramPacket);
+                        datagramSocket.send(datagramPacket);
                         logger.d("DEBUG", "Broadcast Packet Sent");
                     }
                     catch (Exception e){

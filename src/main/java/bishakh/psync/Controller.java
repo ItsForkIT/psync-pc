@@ -253,7 +253,7 @@ public class Controller {
                                 if (missingFileTableHashMap.get(peers) == null) { // this is first missing file from current peer
                                     missingFileTableHashMap.put(peers, new ConcurrentHashMap<String, FileEntry>());
                                 }
-                                missingFileTableHashMap.get(peers).put(files, remotePeerFileTableHashMap.get(peers).fileMap.get(files));
+                                missingFileTableHashMap.get(peers).put(files, new FileEntry(remotePeerFileTableHashMap.get(peers).fileMap.get(files)));
                                 // missing file sequence same as sequence of available file
                                 List<Long> seq = new ArrayList<>();
                                 seq.add((long) 0);
@@ -266,7 +266,7 @@ public class Controller {
 
                     // Make file manager entry
                     if (fileManager.fileTable.fileMap.get(files) == null) {
-                        fileManager.fileTable.fileMap.put(files, remotePeerFileTableHashMap.get(peers).fileMap.get(files));
+                        fileManager.fileTable.fileMap.put(files, new FileEntry(remotePeerFileTableHashMap.get(peers).fileMap.get(files)));
                         logger.d("DEBUG: ", " HERE2 END SEQ SET -------- " + endByte);
                         fileManager.forceSetEndSequence(files, endByte);
                     }
@@ -452,7 +452,7 @@ public class Controller {
                  */
                 logger.d("DEBUG: ", "MISSING FILE CONTROL: " + countMissingFileFetcher);
                 for(String s : discoverer.priorityPeerList.keySet()) {
-                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%12 != 0){
+                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%5 != 0){
                         logger.d("DEBUG: ", "Controller skip fetching missing files for " + s);
                     }
                     else{
@@ -464,7 +464,7 @@ public class Controller {
                     }
                 }
 
-                if(countMissingFileFetcher%12 != 0){
+                if(countMissingFileFetcher%5 != 0){
                     countMissingFileFetcher+=1;
                 }
                 else {

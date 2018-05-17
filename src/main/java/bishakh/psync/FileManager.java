@@ -5,6 +5,8 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
 import java.lang.reflect.Type;
+import java.net.URI;
+import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
@@ -12,6 +14,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * File Table and File List Format:
@@ -180,6 +184,25 @@ public class FileManager {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Write zipped
+        /*
+        Map<String, String> env = new HashMap<>();
+        env.put("create", "true");
+
+        URI uri = URI.create(DATABASE_PATH + ".zip");
+
+        try (FileSystem zipfs = FileSystems.newFileSystem(uri, env)) {
+            Path externalTxtFile = Paths.get(DATABASE_PATH);
+            Path pathInZipfile = zipfs.getPath(DATABASE_NAME);
+            // copy a file into the zip file
+            Files.copy(externalTxtFile, pathInZipfile, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        */
+
+
     }
 
     /**
@@ -565,6 +588,20 @@ class FileEntry implements java.io.Serializable{
         this.destinationReachedStatus = destinationReachedStatus;
         this.importance = importance;
     }
+    public FileEntry(FileEntry copy){
+        this.fileID = copy.fileID;
+        this.fileName = copy.fileName;
+        this.filePath = copy.filePath;
+        this.sequence = copy.sequence;
+        this.fileSize = copy.fileSize;
+        this.priority = copy.priority;
+        this.timestamp = copy.timestamp;
+        this.ttl = copy.ttl;
+        this.destination = copy.destination;
+        this.destinationReachedStatus = copy.destinationReachedStatus;
+        this.importance = copy.importance;
+    }
+
 
     String getFileID(){
         return this.fileID;
