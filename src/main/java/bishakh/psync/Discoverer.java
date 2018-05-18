@@ -265,7 +265,7 @@ public class Discoverer {
         @Override
         public void run() {
             try{
-                datagramSocket = new DatagramSocket(PORT, InetAddress.getByName("192.168.0.255"));
+                datagramSocket = new DatagramSocket(PORT, InetAddress.getByName(BROADCAST_IP));
                 datagramSocket.setBroadcast(true);
                 datagramSocket.setSoTimeout(200);
 

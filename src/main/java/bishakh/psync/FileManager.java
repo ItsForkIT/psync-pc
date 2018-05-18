@@ -29,6 +29,7 @@ public class FileManager {
     Gson gson = new Gson();
     final String DATABASE_NAME;
     final String DATABASE_PATH;
+    final String DATABASE_ZIP_PATH;
     final String MAP_DIR_PATH;
     final File FILES_PATH;
     final String PEER_ID;
@@ -46,6 +47,7 @@ public class FileManager {
         fileTable.fileMap = new ConcurrentHashMap<>();
         this.DATABASE_NAME = databaseName;
         this.DATABASE_PATH = databaseDirectory + DATABASE_NAME;
+        this.DATABASE_ZIP_PATH = DATABASE_PATH + ".zip";
         this.FILES_PATH = new File(syncDirectory);
         this.logger = loggerObj;
         this.MAP_DIR_PATH = mapDir;
@@ -186,21 +188,7 @@ public class FileManager {
         }
 
         // Write zipped
-        /*
-        Map<String, String> env = new HashMap<>();
-        env.put("create", "true");
-
-        URI uri = URI.create(DATABASE_PATH + ".zip");
-
-        try (FileSystem zipfs = FileSystems.newFileSystem(uri, env)) {
-            Path externalTxtFile = Paths.get(DATABASE_PATH);
-            Path pathInZipfile = zipfs.getPath(DATABASE_NAME);
-            // copy a file into the zip file
-            Files.copy(externalTxtFile, pathInZipfile, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        */
+        zipIt(DATABASE_ZIP_PATH);
 
 
     }
@@ -540,6 +528,49 @@ public class FileManager {
                 }
             }
             }
+        }
+    }
+
+
+
+
+    /**
+     * Zip it
+     * @param zipFile output ZIP file location
+     */
+    public void zipIt(String zipFile){
+
+        byte[] buffer = new byte[1024];
+
+        try{
+
+            FileOutputStream fos = new FileOutputStream(zipFile);
+            ZipOutputStream zos = new ZipOutputStream(fos);
+            System.out.println("Output to Zip : " + zipFile);
+
+
+            System.out.println("File Added : " + DATABASE_PATH);
+            ZipEntry ze= new ZipEntry(DATABASE_NAME);
+            zos.putNextEntry(ze);
+
+            FileInputStream in =
+                    new FileInputStream(DATABASE_PATH);
+
+            int len;
+            while ((len = in.read(buffer)) > 0) {
+                zos.write(buffer, 0, len);
+            }
+
+            in.close();
+
+
+            zos.closeEntry();
+            //remember close it
+            zos.close();
+
+            System.out.println("Done");
+        }catch(IOException ex){
+            ex.printStackTrace();
         }
     }
 

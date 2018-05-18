@@ -92,7 +92,7 @@ public class Controller {
         logger.d("DEBUG", "Controller URL Request recv: " + parameter);
 
         if(parameter.equals("list")){
-            FileAndMime.add(0, fileManager.DATABASE_PATH);
+            FileAndMime.add(0, fileManager.DATABASE_ZIP_PATH);
             FileAndMime.add(1, "application/octet-stream");
             return FileAndMime;
         }
@@ -452,7 +452,7 @@ public class Controller {
                  */
                 logger.d("DEBUG: ", "MISSING FILE CONTROL: " + countMissingFileFetcher);
                 for(String s : discoverer.priorityPeerList.keySet()) {
-                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%5 != 0){
+                    if(remotePeerFileTableHashMap.get(s) != null && countMissingFileFetcher%14 != 0){
                         logger.d("DEBUG: ", "Controller skip fetching missing files for " + s);
                     }
                     else{
@@ -464,7 +464,7 @@ public class Controller {
                     }
                 }
 
-                if(countMissingFileFetcher%5 != 0){
+                if(countMissingFileFetcher%14 != 0){
                     countMissingFileFetcher+=1;
                 }
                 else {

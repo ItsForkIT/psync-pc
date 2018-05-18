@@ -10,6 +10,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * The File Transporter module : request a file from a peer node
@@ -221,9 +223,20 @@ public class FileTransporter {
                 logger.d("====================DEBUG:FILE TRANSPORTER", "Response code : " + connection.getResponseCode());
                 // get the input stream
                 in = new BufferedInputStream(connection.getInputStream());
-                BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-                FileTable fileTable;
-                fileTable = (FileTable) gson.fromJson(br, FileTable.class);
+                //BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+                FileTable fileTable = null;
+                BufferedReader br = null;
+                ZipInputStream zis = new ZipInputStream(in);
+                ZipEntry entry;
+                while ((entry = zis.getNextEntry()) != null) {
+                    int count;
+                    byte data[] = new byte[2048];
+
+                    br = new BufferedReader(new InputStreamReader(zis));
+
+                    fileTable = (FileTable) gson.fromJson(br, FileTable.class);
+                }
+                zis.close();
                 controller.peerFilesFetched(peerAddress, fileTable);
                 logger.write("==============SUMMARY_VECTOR_RECEIVED, " + connection.getContentLength());
                 //Log.d("DEBUG:FILE TRANSPORTER", "List Json: " + gson.toJson(fileTableHashMap).toString());
